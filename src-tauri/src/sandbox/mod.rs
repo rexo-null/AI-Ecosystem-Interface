@@ -4,3 +4,4 @@
 pub mod container;
 pub mod vnc;
 pub mod browser;
+pub mod self_healing;

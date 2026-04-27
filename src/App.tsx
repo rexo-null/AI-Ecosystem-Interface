@@ -3,11 +3,12 @@ import { i18n } from './i18n';
 import FileTree from './components/FileTree';
 import KnowledgeBase from './components/KnowledgeBase';
 import CodeSearch from './components/CodeSearch';
+import SandboxPanel from './components/SandboxPanel';
 import EditorArea from './components/EditorArea';
 import ChatPanel from './components/ChatPanel';
 import TerminalPanel from './components/TerminalPanel';
 
-type SidebarTab = 'files' | 'knowledge' | 'search';
+type SidebarTab = 'files' | 'knowledge' | 'search' | 'sandbox';
 
 function App() {
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>('files');
@@ -17,6 +18,7 @@ function App() {
       case 'files': return <FileTree />;
       case 'knowledge': return <KnowledgeBase />;
       case 'search': return <CodeSearch />;
+      case 'sandbox': return <SandboxPanel />;
     }
   };
 
@@ -50,6 +52,12 @@ function App() {
             onClick={() => setSidebarTab('search')}
           >
             {i18n.t('sidebar.search')}
+          </button>
+          <button
+            className={`sidebar-tab ${sidebarTab === 'sandbox' ? 'active' : ''}`}
+            onClick={() => setSidebarTab('sandbox')}
+          >
+            Sandbox
           </button>
         </div>
         

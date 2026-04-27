@@ -16,6 +16,10 @@ use memory::{KnowledgeBase, SemanticIndexer, RulesEngine, VectorStore};
 use memory::vector_store::VectorStoreConfig;
 use llm::LLMEngine;
 use modules::{ToolModule, MemoryModule, AgentModule, ISKINModule};
+use sandbox::container::ContainerManager;
+use sandbox::vnc::VncManager;
+use sandbox::browser::{BrowserAutomation, BrowserConfig};
+use sandbox::self_healing::SelfHealingLoop;
 use std::sync::Arc;
 use std::path::PathBuf;
 use log::info;
@@ -80,6 +84,14 @@ async fn main() -> anyhow::Result<()> {
     let loaded_modules = lifecycle_manager.scan_and_load_modules().await?;
     info!("Loaded {} dynamic modules", loaded_modules.len());
     
+    // Initialize Sandbox components
+    let container_manager = ContainerManager::new();
+    container_manager.initialize().await?;
+
+    let vnc_manager = VncManager::new();
+    let browser_automation = BrowserAutomation::new(BrowserConfig::default());
+    let self_healing = SelfHealingLoop::new();
+
     info!("ISKIN core initialized successfully");
     info!("Modules directory: {:?}", modules_dir);
     info!("Data directory: {:?}", data_dir);
@@ -100,6 +112,10 @@ async fn main() -> anyhow::Result<()> {
         .manage(tool_module)
         .manage(memory_module)
         .manage(agent_module)
+        .manage(container_manager)
+        .manage(vnc_manager)
+        .manage(browser_automation)
+        .manage(self_healing)
         .invoke_handler(tauri::generate_handler![
             // Core
             api::commands::ping,
@@ -126,6 +142,32 @@ async fn main() -> anyhow::Result<()> {
             api::commands::execute_tool,
             api::commands::manage_memory,
             api::commands::manage_agent_tasks,
+            // Sandbox — Containers
+            api::commands::get_docker_status,
+            api::commands::create_container,
+            api::commands::start_container,
+            api::commands::stop_container,
+            api::commands::remove_container,
+            api::commands::list_containers,
+            api::commands::exec_in_container,
+            api::commands::get_container_logs,
+            // Sandbox — VNC
+            api::commands::create_vnc_session,
+            api::commands::connect_vnc,
+            api::commands::disconnect_vnc,
+            api::commands::list_vnc_sessions,
+            // Sandbox — Browser
+            api::commands::launch_browser,
+            api::commands::browser_navigate,
+            api::commands::browser_screenshot,
+            api::commands::close_browser,
+            api::commands::get_browser_status,
+            // Sandbox — Self-Healing
+            api::commands::get_healing_stats,
+            api::commands::run_health_check,
+            api::commands::get_healing_events,
+            // Sandbox — Status
+            api::commands::get_sandbox_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running ISKIN");
