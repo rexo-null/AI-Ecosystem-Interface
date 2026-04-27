@@ -1,0 +1,55 @@
+[package]
+name = "iskin"
+version = "0.1.0-alpha"
+edition = "2021"
+description = "Intelligent Self-Improving Knowledge Interface Network - Autonomous AI IDE"
+authors = ["ISKIN Team"]
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+tauri = { version = "2.0", features = ["devtools"] }
+tauri-plugin-shell = "2.0"
+tauri-plugin-fs = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+anyhow = "1.0"
+thiserror = "1.0"
+log = "0.4"
+env_logger = "0.11"
+libloading = "0.8"  # For dynamic library loading
+wasmtime = "19.0"   # For WASM module support
+uuid = { version = "1.0", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# LLM Integration
+candle-core = "0.6"
+candle-transformers = "0.6"
+tokenizers = "0.19"
+
+# Memory & Indexing
+qdrant-client = "1.10"
+tree-sitter = "0.22"
+tree-sitter-rust = "0.22"
+tree-sitter-typescript = "0.21"
+tree-sitter-python = "0.22"
+
+# Sandbox
+bollard = "0.17"  # Docker API client
+async-process = "2.0"
+
+# Security
+os_pipe = "1.0"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
