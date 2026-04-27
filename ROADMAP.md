@@ -5,15 +5,15 @@
 - [x] Tauri v2 configuration
 - [x] Core modules (Lifecycle, Security, Resources)
 - [x] Basic React frontend layout
-- [ ] Tauri build system integration
-- [ ] Basic file system operations
+- [x] Tauri build system integration
+- [x] Basic file system operations
 
-## Phase 2: Memory & Context (Weeks 3-4)
-- [ ] Knowledge Base implementation
-- [ ] Semantic indexing with Qdrant
-- [ ] Tree-sitter code graph
-- [ ] Rules engine
-- [ ] UI for Knowledge Hub
+## Phase 2: Memory & Context (Weeks 3-4) ✅
+- [x] Knowledge Base implementation (полная реализация с персистентностью)
+- [x] Semantic indexing with Qdrant (VectorStore с локальным fallback)
+- [x] Tree-sitter code graph (Rust, TypeScript, Python)
+- [x] Rules engine (паттерн-матчинг, приоритеты, JSON-хранилище)
+- [x] UI for Knowledge Hub (поиск, фильтры, предпросмотр)
 
 ## Phase 3: Sandbox Environment (Weeks 5-7)
 - [ ] Docker/Podman integration
@@ -42,18 +42,24 @@
 - [ ] Documentation
 - [ ] Alpha release
 
-## Current Status: Phase 1 In Progress
+## Current Status: Phase 3 Pending
 
-### Completed:
-- ✅ Repository structure
-- ✅ Rust core modules (Lifecycle, Security, Resources)
-- ✅ Memory system foundation
-- ✅ React frontend skeleton
-- ✅ Component structure (FileTree, KnowledgeBase, Editor, Chat, Terminal)
+### Completed (Phase 1 + 2):
+- Repository structure & Tauri v2 configuration
+- Rust core modules (Lifecycle, Security, Resources, PolicyEngine)
+- React frontend (VS Code-like layout)
+- KnowledgeBase with JSON persistence and full-text search
+- SemanticIndexer with Tree-sitter (Rust, TypeScript, Python code parsing)
+- VectorStore (Qdrant + local fallback with TF-IDF vectorizer)
+- RulesEngine (Constitution/Protocol/UserRule priorities, regex/glob/contains matching, JSON storage)
+- 18 Tauri commands (ping, knowledge CRUD, code indexing, rules management, LLM chat, tool/memory/agent modules)
+- CodeSearch UI component (project indexing, symbol search, file preview)
+- Knowledge Hub UI (search bar with debounce, expandable cards, type filters, content preview)
+- Frontend-backend integration via Tauri invoke with localStorage fallback
+- i18n (RU/EN) with new sidebar tab and code search translations
 
 ### Next Steps:
-1. Install npm dependencies
-2. Install Rust dependencies
-3. Create Tauri icons
-4. Test basic build
-5. Implement file system commands
+1. Docker/Podman container management (Sandbox)
+2. VNC streaming integration (KasmVNC)
+3. Browser automation with Playwright
+4. Self-healing loop implementation

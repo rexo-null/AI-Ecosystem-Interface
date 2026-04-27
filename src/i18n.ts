@@ -10,6 +10,7 @@ const translations = {
     sidebar: {
       files: 'Файлы',
       knowledge: 'Знания',
+      search: 'Поиск',
     },
     editor: {
       placeholder: 'Откройте файл для просмотра',
@@ -27,6 +28,9 @@ const translations = {
       protocol: 'Протокол',
       pattern: 'Паттерн',
       tool: 'Инструмент',
+      userrule: 'Правило',
+      tooldefinition: 'Инструмент',
+      projectcontext: 'Контекст',
       title: 'Заголовок',
       type: 'Тип',
       priority: 'Приоритет',
@@ -34,6 +38,23 @@ const translations = {
       addNew: 'Добавить запись',
       edit: 'Редактировать',
       delete: 'Удалить',
+      search: 'Поиск...',
+      noEntries: 'Нет записей',
+      content: 'Содержимое',
+      accessCount: 'Обращений',
+    },
+    codeSearch: {
+      indexProject: 'Индексация проекта',
+      projectPath: 'Путь к проекту',
+      index: 'Индексировать',
+      search: 'Поиск по коду',
+      searchPlaceholder: 'Поиск символов и кода...',
+      find: 'Найти',
+      allLanguages: 'Все языки',
+      noResults: 'Ничего не найдено',
+      symbols: 'Символы',
+      files: 'Файлов',
+      lines: 'Строк',
     },
     terminal: {
       title: 'Терминал',
@@ -53,6 +74,7 @@ const translations = {
     sidebar: {
       files: 'Files',
       knowledge: 'Knowledge',
+      search: 'Search',
     },
     editor: {
       placeholder: 'Open a file to view',
@@ -70,6 +92,9 @@ const translations = {
       protocol: 'Protocol',
       pattern: 'Pattern',
       tool: 'Tool',
+      userrule: 'Rule',
+      tooldefinition: 'Tool',
+      projectcontext: 'Context',
       title: 'Title',
       type: 'Type',
       priority: 'Priority',
@@ -77,6 +102,23 @@ const translations = {
       addNew: 'Add Entry',
       edit: 'Edit',
       delete: 'Delete',
+      search: 'Search...',
+      noEntries: 'No entries',
+      content: 'Content',
+      accessCount: 'Access count',
+    },
+    codeSearch: {
+      indexProject: 'Index Project',
+      projectPath: 'Project path',
+      index: 'Index',
+      search: 'Code Search',
+      searchPlaceholder: 'Search symbols and code...',
+      find: 'Find',
+      allLanguages: 'All languages',
+      noResults: 'No results found',
+      symbols: 'Symbols',
+      files: 'Files',
+      lines: 'Lines',
     },
     terminal: {
       title: 'Terminal',
@@ -108,13 +150,17 @@ export const i18n = {
   
   t: (path: string): string => {
     const keys = path.split('.');
-    let value: any = translations[currentLanguage];
+    let value: Record<string, unknown> | string = translations[currentLanguage] as Record<string, unknown>;
     
     for (const key of keys) {
-      value = value?.[key];
+      if (typeof value === 'object' && value !== null && key in value) {
+        value = value[key] as Record<string, unknown> | string;
+      } else {
+        return path;
+      }
     }
     
-    return value || path;
+    return typeof value === 'string' ? value : path;
   },
 };
 
