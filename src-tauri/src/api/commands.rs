@@ -6,6 +6,13 @@ use crate::memory::rules_engine::{Rule, RuleUpdate, EvaluationResult, RulePriori
 use crate::memory::vector_store::SearchResult as VectorSearchResult;
 use crate::llm::{LLMEngine, ChatRequest, Message, LLMResponse};
 use crate::modules::{ToolModule, MemoryModule, AgentModule};
+use crate::sandbox::container::{
+    ContainerManager, ContainerConfig as SandboxContainerConfig,
+    ContainerStatus, ManagedContainer, DockerStatus, ExecResult,
+};
+use crate::sandbox::vnc::{VncManager, VncConfig, VncSession};
+use crate::sandbox::browser::{BrowserAutomation, BrowserConfig, BrowserAction, ActionResult, ScreenshotResult, PageInfo};
+use crate::sandbox::self_healing::{SelfHealingLoop, HealingStats, HealthCheckResult, HealingEvent};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -227,20 +234,32 @@ pub async fn search_code(
 ) -> Result<Vec<SearchCodeResult>, String> {
     let results = indexer.search(&params.query, params.limit).await;
 
-    Ok(results.into_iter().map(|entry| {
-        let preview = entry.content.lines()
-            .take(5)
-            .collect::<Vec<_>>()
-            .join("\n");
+    let filtered = results.into_iter()
+        .filter(|entry| {
+            match &params.language {
+                Some(lang) if !lang.is_empty() => {
+                    entry.language.as_str().eq_ignore_ascii_case(lang)
+                }
+                _ => true,
+            }
+        })
+        .map(|entry| {
+            let preview = entry.content.lines()
+                .take(5)
+                .collect::<Vec<_>>()
+                .join("\n");
 
-        SearchCodeResult {
-            file_path: entry.file_path,
-            language: entry.language.as_str().to_string(),
-            symbols: entry.symbols,
-            line_count: entry.line_count,
-            preview,
-        }
-    }).collect())
+            SearchCodeResult {
+                file_path: entry.file_path,
+                language: entry.language.as_str().to_string(),
+                symbols: entry.symbols,
+                line_count: entry.line_count,
+                preview,
+            }
+        })
+        .collect();
+
+    Ok(filtered)
 }
 
 /// Get symbols from a specific file
@@ -452,4 +471,318 @@ pub async fn manage_agent_tasks(
         .execute(&command, args)
         .await
         .map_err(|e| e.to_string())
+}
+
+// ============================================================
+// Sandbox Commands — Container Management
+// ============================================================
+
+#[derive(Debug, Serialize)]
+pub struct ContainerResponse {
+    pub id: String,
+    pub docker_id: Option<String>,
+    pub image: String,
+    pub name: Option<String>,
+    pub status: String,
+    pub created_at: i64,
+    pub health_check_failures: u32,
+}
+
+impl From<ManagedContainer> for ContainerResponse {
+    fn from(c: ManagedContainer) -> Self {
+        Self {
+            id: c.id,
+            docker_id: c.docker_id,
+            image: c.config.image,
+            name: c.config.name,
+            status: c.status.as_str().to_string(),
+            created_at: c.created_at,
+            health_check_failures: c.health_check_failures,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateContainerParams {
+    pub image: String,
+    pub name: Option<String>,
+    pub memory_limit_mb: Option<u64>,
+    pub cpu_limit: Option<f64>,
+    #[serde(default)]
+    pub env_vars: HashMap<String, String>,
+    #[serde(default)]
+    pub ports: Vec<(u16, u16)>,
+    #[serde(default)]
+    pub volumes: Vec<(String, String)>,
+    pub working_dir: Option<String>,
+    pub command: Option<Vec<String>>,
+}
+
+/// Get Docker daemon status
+#[tauri::command]
+pub async fn get_docker_status(
+    cm: tauri::State<'_, ContainerManager>,
+) -> Result<DockerStatus, String> {
+    Ok(cm.docker_status().await)
+}
+
+/// Create a new sandbox container
+#[tauri::command]
+pub async fn create_container(
+    cm: tauri::State<'_, ContainerManager>,
+    params: CreateContainerParams,
+) -> Result<String, String> {
+    let config = SandboxContainerConfig {
+        image: params.image,
+        name: params.name,
+        memory_limit_mb: params.memory_limit_mb,
+        cpu_limit: params.cpu_limit,
+        env_vars: params.env_vars,
+        ports: params.ports,
+        volumes: params.volumes,
+        working_dir: params.working_dir,
+        command: params.command,
+        auto_remove: false,
+        network_mode: None,
+    };
+
+    cm.create(config).await.map_err(|e| e.to_string())
+}
+
+/// Start a container
+#[tauri::command]
+pub async fn start_container(
+    cm: tauri::State<'_, ContainerManager>,
+    container_id: String,
+) -> Result<(), String> {
+    cm.start(&container_id).await.map_err(|e| e.to_string())
+}
+
+/// Stop a container
+#[tauri::command]
+pub async fn stop_container(
+    cm: tauri::State<'_, ContainerManager>,
+    container_id: String,
+) -> Result<(), String> {
+    cm.stop(&container_id).await.map_err(|e| e.to_string())
+}
+
+/// Remove a container
+#[tauri::command]
+pub async fn remove_container(
+    cm: tauri::State<'_, ContainerManager>,
+    container_id: String,
+) -> Result<(), String> {
+    cm.remove(&container_id).await.map_err(|e| e.to_string())
+}
+
+/// List all containers
+#[tauri::command]
+pub async fn list_containers(
+    cm: tauri::State<'_, ContainerManager>,
+) -> Result<Vec<ContainerResponse>, String> {
+    let containers = cm.list().await;
+    Ok(containers.into_iter().map(ContainerResponse::from).collect())
+}
+
+/// Execute a command in a container
+#[tauri::command]
+pub async fn exec_in_container(
+    cm: tauri::State<'_, ContainerManager>,
+    container_id: String,
+    command: Vec<String>,
+) -> Result<ExecResult, String> {
+    cm.exec(&container_id, command).await.map_err(|e| e.to_string())
+}
+
+/// Get container logs
+#[tauri::command]
+pub async fn get_container_logs(
+    cm: tauri::State<'_, ContainerManager>,
+    container_id: String,
+    tail: Option<usize>,
+) -> Result<Vec<String>, String> {
+    cm.get_logs(&container_id, tail.unwrap_or(100)).await.map_err(|e| e.to_string())
+}
+
+// ============================================================
+// Sandbox Commands — VNC
+// ============================================================
+
+#[derive(Debug, Serialize)]
+pub struct VncSessionResponse {
+    pub id: String,
+    pub container_id: Option<String>,
+    pub status: String,
+    pub websocket_url: String,
+    pub resolution: (u32, u32),
+    pub created_at: i64,
+}
+
+impl From<VncSession> for VncSessionResponse {
+    fn from(s: VncSession) -> Self {
+        Self {
+            id: s.id,
+            container_id: s.container_id,
+            status: s.status.as_str().to_string(),
+            websocket_url: s.websocket_url,
+            resolution: s.config.resolution,
+            created_at: s.created_at,
+        }
+    }
+}
+
+/// Create a VNC session
+#[tauri::command]
+pub async fn create_vnc_session(
+    vnc: tauri::State<'_, VncManager>,
+    container_id: Option<String>,
+    port: Option<u16>,
+    websocket_port: Option<u16>,
+) -> Result<String, String> {
+    let config = VncConfig {
+        port: port.unwrap_or(5900),
+        websocket_port: websocket_port.unwrap_or(6080),
+        ..Default::default()
+    };
+    vnc.create_session(config, container_id).await.map_err(|e| e.to_string())
+}
+
+/// Connect to a VNC session
+#[tauri::command]
+pub async fn connect_vnc(
+    vnc: tauri::State<'_, VncManager>,
+    session_id: String,
+) -> Result<String, String> {
+    vnc.connect(&session_id).await.map_err(|e| e.to_string())
+}
+
+/// Disconnect from a VNC session
+#[tauri::command]
+pub async fn disconnect_vnc(
+    vnc: tauri::State<'_, VncManager>,
+    session_id: String,
+) -> Result<(), String> {
+    vnc.disconnect(&session_id).await.map_err(|e| e.to_string())
+}
+
+/// List VNC sessions
+#[tauri::command]
+pub async fn list_vnc_sessions(
+    vnc: tauri::State<'_, VncManager>,
+) -> Result<Vec<VncSessionResponse>, String> {
+    let sessions = vnc.list_sessions().await;
+    Ok(sessions.into_iter().map(VncSessionResponse::from).collect())
+}
+
+// ============================================================
+// Sandbox Commands — Browser Automation
+// ============================================================
+
+/// Launch headless browser
+#[tauri::command]
+pub async fn launch_browser(
+    browser: tauri::State<'_, BrowserAutomation>,
+) -> Result<String, String> {
+    browser.launch().await.map_err(|e| e.to_string())?;
+    Ok("Browser launched".to_string())
+}
+
+/// Navigate browser to URL
+#[tauri::command]
+pub async fn browser_navigate(
+    browser: tauri::State<'_, BrowserAutomation>,
+    url: String,
+) -> Result<PageInfo, String> {
+    browser.navigate(&url).await.map_err(|e| e.to_string())
+}
+
+/// Take browser screenshot
+#[tauri::command]
+pub async fn browser_screenshot(
+    browser: tauri::State<'_, BrowserAutomation>,
+) -> Result<ScreenshotResult, String> {
+    browser.screenshot().await.map_err(|e| e.to_string())
+}
+
+/// Close browser
+#[tauri::command]
+pub async fn close_browser(
+    browser: tauri::State<'_, BrowserAutomation>,
+) -> Result<(), String> {
+    browser.close().await.map_err(|e| e.to_string())
+}
+
+/// Get browser status
+#[tauri::command]
+pub async fn get_browser_status(
+    browser: tauri::State<'_, BrowserAutomation>,
+) -> Result<String, String> {
+    Ok(browser.get_status().await.as_str().to_string())
+}
+
+// ============================================================
+// Sandbox Commands — Self-Healing
+// ============================================================
+
+/// Get self-healing statistics
+#[tauri::command]
+pub async fn get_healing_stats(
+    healing: tauri::State<'_, SelfHealingLoop>,
+) -> Result<HealingStats, String> {
+    Ok(healing.get_stats().await)
+}
+
+/// Run health check on all monitored containers
+#[tauri::command]
+pub async fn run_health_check(
+    healing: tauri::State<'_, SelfHealingLoop>,
+    cm: tauri::State<'_, ContainerManager>,
+) -> Result<Vec<HealthCheckResult>, String> {
+    Ok(healing.check_health(&cm).await)
+}
+
+/// Get healing event history
+#[tauri::command]
+pub async fn get_healing_events(
+    healing: tauri::State<'_, SelfHealingLoop>,
+    limit: Option<usize>,
+) -> Result<Vec<HealingEvent>, String> {
+    Ok(healing.get_events(limit.unwrap_or(50)).await)
+}
+
+// ============================================================
+// Sandbox Status — Combined overview
+// ============================================================
+
+#[derive(Debug, Serialize)]
+pub struct SandboxStatus {
+    pub docker: DockerStatus,
+    pub containers_count: usize,
+    pub vnc_sessions_count: usize,
+    pub browser_status: String,
+    pub healing_stats: HealingStats,
+}
+
+/// Get overall sandbox status
+#[tauri::command]
+pub async fn get_sandbox_status(
+    cm: tauri::State<'_, ContainerManager>,
+    vnc: tauri::State<'_, VncManager>,
+    browser: tauri::State<'_, BrowserAutomation>,
+    healing: tauri::State<'_, SelfHealingLoop>,
+) -> Result<SandboxStatus, String> {
+    let docker = cm.docker_status().await;
+    let containers_count = cm.list().await.len();
+    let vnc_sessions_count = vnc.list_sessions().await.len();
+    let browser_status = browser.get_status().await.as_str().to_string();
+    let healing_stats = healing.get_stats().await;
+
+    Ok(SandboxStatus {
+        docker,
+        containers_count,
+        vnc_sessions_count,
+        browser_status,
+        healing_stats,
+    })
 }

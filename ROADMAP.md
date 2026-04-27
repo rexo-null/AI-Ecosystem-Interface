@@ -15,12 +15,13 @@
 - [x] Rules engine (паттерн-матчинг, приоритеты, JSON-хранилище)
 - [x] UI for Knowledge Hub (поиск, фильтры, предпросмотр)
 
-## Phase 3: Sandbox Environment (Weeks 5-7)
-- [ ] Docker/Podman integration
-- [ ] VNC streaming
-- [ ] Browser automation (Playwright)
-- [ ] Headless Chrome for frontend testing
-- [ ] Self-healing loop
+## Phase 3: Sandbox Environment (Weeks 5-7) ✅
+- [x] Docker/Podman integration (ContainerManager через bollard API)
+- [x] VNC streaming (VncManager с KasmVNC WebSocket proxy)
+- [x] Browser automation (BrowserAutomation через Chrome CDP)
+- [x] Headless Chrome for frontend testing
+- [x] Self-healing loop (мониторинг, авто-рестарт, паттерны ошибок)
+- [x] Sandbox UI panel (контейнеры, браузер, здоровье)
 
 ## Phase 4: AI Integration (Weeks 8-10)
 - [ ] llama.cpp integration
@@ -42,24 +43,29 @@
 - [ ] Documentation
 - [ ] Alpha release
 
-## Current Status: Phase 3 Pending
+## Current Status: Phase 4 Pending
 
-### Completed (Phase 1 + 2):
+### Completed (Phase 1 + 2 + 3):
 - Repository structure & Tauri v2 configuration
 - Rust core modules (Lifecycle, Security, Resources, PolicyEngine)
-- React frontend (VS Code-like layout)
+- React frontend (VS Code-like layout, 4 sidebar tabs)
 - KnowledgeBase with JSON persistence and full-text search
 - SemanticIndexer with Tree-sitter (Rust, TypeScript, Python code parsing)
 - VectorStore (Qdrant + local fallback with TF-IDF vectorizer)
 - RulesEngine (Constitution/Protocol/UserRule priorities, regex/glob/contains matching, JSON storage)
-- 18 Tauri commands (ping, knowledge CRUD, code indexing, rules management, LLM chat, tool/memory/agent modules)
+- ContainerManager with Docker API (bollard): create/start/stop/remove, exec, logs, health checks, simulation mode
+- VncManager: KasmVNC WebSocket proxy, session management, resolution/quality control, screenshot capture
+- BrowserAutomation: Headless Chrome via CDP, navigate/screenshot/execute JS, action sequences
+- SelfHealingLoop: container health monitoring, auto-restart, error pattern detection, recovery strategies
+- 38 Tauri commands (18 Phase 2 + 20 Phase 3: containers, VNC, browser, self-healing, sandbox status)
+- SandboxPanel UI (container list with controls, browser automation, health stats dashboard)
 - CodeSearch UI component (project indexing, symbol search, file preview)
 - Knowledge Hub UI (search bar with debounce, expandable cards, type filters, content preview)
 - Frontend-backend integration via Tauri invoke with localStorage fallback
-- i18n (RU/EN) with new sidebar tab and code search translations
+- i18n (RU/EN)
 
 ### Next Steps:
-1. Docker/Podman container management (Sandbox)
-2. VNC streaming integration (KasmVNC)
-3. Browser automation with Playwright
-4. Self-healing loop implementation
+1. LLM integration (llama.cpp + Qwen-2.5-Coder-14B)
+2. Streaming chat interface
+3. Prompt management system
+4. Visual analysis (Qwen-VL)

@@ -70,6 +70,46 @@ interface KnowledgeBaseStats {
 }
 
 // ============================================================
+// Sandbox Types
+// ============================================================
+
+interface DockerStatus {
+  connected: boolean;
+  version: string | null;
+  api_version: string | null;
+  containers_running: number;
+  images_count: number;
+}
+
+interface HealingStats {
+  total_checks: number;
+  total_recoveries: number;
+  successful_recoveries: number;
+  failed_recoveries: number;
+  active_monitors: number;
+  error_patterns_count: number;
+  uptime_percentage: number;
+}
+
+interface SandboxStatusData {
+  docker: DockerStatus;
+  containers_count: number;
+  vnc_sessions_count: number;
+  browser_status: string;
+  healing_stats: HealingStats;
+}
+
+interface ContainerInfo {
+  id: string;
+  docker_id: string | null;
+  image: string;
+  name: string | null;
+  status: string;
+  created_at: number;
+  health_check_failures: number;
+}
+
+// ============================================================
 // Tauri invoke wrapper (falls back to mock for browser dev)
 // ============================================================
 
@@ -100,6 +140,7 @@ interface EditorStore {
 
   // Knowledge Base
   memoryEntries: MemoryEntry[];
+  allMemoryEntries: MemoryEntry[];
   knowledgeLoading: boolean;
   knowledgeError: string | null;
   loadKnowledgeEntries: (memoryType?: string, tags?: string[]) => Promise<void>;
@@ -133,6 +174,19 @@ interface EditorStore {
   }) => Promise<void>;
   deleteRule: (id: string) => Promise<void>;
 
+  // Sandbox
+  sandboxStatus: SandboxStatusData | null;
+  containers: ContainerInfo[];
+  sandboxLoading: boolean;
+  loadSandboxStatus: () => Promise<void>;
+  loadContainers: () => Promise<void>;
+  createContainer: (params: { image: string; name?: string; memory_limit_mb?: number }) => Promise<void>;
+  startContainer: (id: string) => Promise<void>;
+  stopContainer: (id: string) => Promise<void>;
+  removeContainer: (id: string) => Promise<void>;
+  launchBrowser: () => Promise<void>;
+  closeBrowser: () => Promise<void>;
+
   // Backward compatibility: localStorage fallback
   loadMemory: () => void;
   saveMemory: () => void;
@@ -145,6 +199,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   activeFile: null,
   openTabs: [],
   memoryEntries: [],
+  allMemoryEntries: [],
   knowledgeLoading: false,
   knowledgeError: null,
   searchResults: [],
@@ -152,6 +207,9 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   codeSearchLoading: false,
   rules: [],
   rulesLoading: false,
+  sandboxStatus: null,
+  containers: [],
+  sandboxLoading: false,
 
   setActiveFile: (file: FileContent) => {
     set({ activeFile: file });
@@ -187,11 +245,12 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         params.params = { memory_type: memoryType, tags };
       }
       const entries = await tauriInvoke<MemoryEntry[]>('get_knowledge_entries', params);
-      set({ memoryEntries: entries, knowledgeLoading: false });
+      set({ memoryEntries: entries, allMemoryEntries: entries, knowledgeLoading: false });
     } catch {
       // Fallback to localStorage
       get().loadMemory();
-      set({ knowledgeLoading: false });
+      const entries = get().memoryEntries;
+      set({ allMemoryEntries: entries, knowledgeLoading: false });
     }
   },
 
@@ -214,7 +273,11 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         created_at: now,
         updated_at: now,
       };
-      set((state) => ({ memoryEntries: [...state.memoryEntries, newEntry], knowledgeLoading: false }));
+      set((state) => ({
+        memoryEntries: [...state.memoryEntries, newEntry],
+        allMemoryEntries: [...state.allMemoryEntries, newEntry],
+        knowledgeLoading: false,
+      }));
       get().saveMemory();
     }
   },
@@ -225,7 +288,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       await get().loadKnowledgeEntries();
     } catch {
       // Fallback
-      set((state) => ({ memoryEntries: state.memoryEntries.filter(e => e.id !== id) }));
+      set((state) => ({
+        memoryEntries: state.memoryEntries.filter(e => e.id !== id),
+        allMemoryEntries: state.allMemoryEntries.filter(e => e.id !== id),
+      }));
       get().saveMemory();
     }
   },
@@ -238,10 +304,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       });
       set({ memoryEntries: entries, knowledgeLoading: false });
     } catch {
-      // Fallback: local search
-      const { memoryEntries } = get();
+      // Fallback: local search from full dataset (not filtered)
+      const { allMemoryEntries } = get();
       const q = query.toLowerCase();
-      const filtered = memoryEntries.filter(e =>
+      const filtered = allMemoryEntries.filter(e =>
         e.title.toLowerCase().includes(q) ||
         e.content.toLowerCase().includes(q) ||
         e.tags.some(t => t.toLowerCase().includes(q))
@@ -333,6 +399,99 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       await get().loadRules();
     } catch (err) {
       console.error('Delete rule failed:', err);
+    }
+  },
+
+  // ============================================================
+  // Sandbox
+  // ============================================================
+
+  loadSandboxStatus: async () => {
+    set({ sandboxLoading: true });
+    try {
+      const status = await tauriInvoke<SandboxStatusData>('get_sandbox_status');
+      set({ sandboxStatus: status, sandboxLoading: false });
+    } catch {
+      set({
+        sandboxStatus: {
+          docker: { connected: false, version: null, api_version: null, containers_running: 0, images_count: 0 },
+          containers_count: 0,
+          vnc_sessions_count: 0,
+          browser_status: 'idle',
+          healing_stats: {
+            total_checks: 0, total_recoveries: 0, successful_recoveries: 0,
+            failed_recoveries: 0, active_monitors: 0, error_patterns_count: 0, uptime_percentage: 100,
+          },
+        },
+        sandboxLoading: false,
+      });
+    }
+  },
+
+  loadContainers: async () => {
+    try {
+      const containers = await tauriInvoke<ContainerInfo[]>('list_containers');
+      set({ containers });
+    } catch {
+      set({ containers: [] });
+    }
+  },
+
+  createContainer: async (params) => {
+    try {
+      await tauriInvoke<string>('create_container', { params });
+      await get().loadContainers();
+      await get().loadSandboxStatus();
+    } catch (err) {
+      console.error('Create container failed:', err);
+    }
+  },
+
+  startContainer: async (id: string) => {
+    try {
+      await tauriInvoke<void>('start_container', { container_id: id });
+      await get().loadContainers();
+      await get().loadSandboxStatus();
+    } catch (err) {
+      console.error('Start container failed:', err);
+    }
+  },
+
+  stopContainer: async (id: string) => {
+    try {
+      await tauriInvoke<void>('stop_container', { container_id: id });
+      await get().loadContainers();
+      await get().loadSandboxStatus();
+    } catch (err) {
+      console.error('Stop container failed:', err);
+    }
+  },
+
+  removeContainer: async (id: string) => {
+    try {
+      await tauriInvoke<void>('remove_container', { container_id: id });
+      await get().loadContainers();
+      await get().loadSandboxStatus();
+    } catch (err) {
+      console.error('Remove container failed:', err);
+    }
+  },
+
+  launchBrowser: async () => {
+    try {
+      await tauriInvoke<string>('launch_browser');
+      await get().loadSandboxStatus();
+    } catch (err) {
+      console.error('Launch browser failed:', err);
+    }
+  },
+
+  closeBrowser: async () => {
+    try {
+      await tauriInvoke<void>('close_browser');
+      await get().loadSandboxStatus();
+    } catch (err) {
+      console.error('Close browser failed:', err);
     }
   },
 
