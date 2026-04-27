@@ -12,8 +12,10 @@ pub fn ping() -> String {
 
 /// List all active dynamic modules
 #[tauri::command]
-pub async fn list_modules(lifecycle: tauri::State<'_, LifecycleManager>) -> Vec<crate::core::lifecycle::DynamicModuleInfo> {
-    lifecycle.list_modules().await
+pub async fn list_modules(
+    lifecycle: tauri::State<'_, LifecycleManager>,
+) -> Result<Vec<crate::core::lifecycle::DynamicModuleInfo>, String> {
+    Ok(lifecycle.list_modules().await)
 }
 
 /// Get knowledge base entries
@@ -39,7 +41,12 @@ pub async fn get_knowledge_entries(
     kb: tauri::State<'_, KnowledgeBase>,
     params: Option<GetKnowledgeParams>,
 ) -> Result<Vec<KnowledgeEntryResponse>, String> {
-    let memory_type = params.and_then(|p| p.memory_type).and_then(|t| {
+    let (memory_type_str, tags) = match params {
+        Some(p) => (p.memory_type, p.tags),
+        None => (None, None),
+    };
+
+    let memory_type = memory_type_str.and_then(|t| {
         match t.as_str() {
             "Constitution" => Some(crate::memory::knowledge_base::MemoryType::Constitution),
             "Protocol" => Some(crate::memory::knowledge_base::MemoryType::Protocol),
@@ -49,9 +56,9 @@ pub async fn get_knowledge_entries(
             _ => None,
         }
     });
-    
-    let entries = kb.search_entries(memory_type, params.and_then(|p| p.tags)).await;
-    
+
+    let entries = kb.search_entries(memory_type, tags).await;
+
     Ok(entries.into_iter().map(|e| KnowledgeEntryResponse {
         id: e.id,
         title: e.title,
@@ -61,13 +68,6 @@ pub async fn get_knowledge_entries(
         priority: e.priority,
     }).collect())
 }
-
-// More commands will be added as development progresses:
-// - File system operations (read, write, delete)
-// - Terminal execution
-// - LLM chat
-// - Sandbox management
-// - Module hot-reload
 
 /// Chat with LLM
 #[tauri::command]
@@ -98,23 +98,27 @@ pub async fn chat_with_llm(
 /// Execute a tool
 #[tauri::command]
 pub async fn execute_tool(
-    tool_module: tauri::State<'_, ToolModule>,
+    tool_module: tauri::State<'_, std::sync::Arc<ToolModule>>,
     tool_id: String,
     args: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    tool_module.execute_tool(&tool_id, args)
+    let result = tool_module
+        .execute_tool(&tool_id, args)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    serde_json::to_value(result).map_err(|e| e.to_string())
 }
 
 /// Manage memory operations
 #[tauri::command]
 pub async fn manage_memory(
-    memory_module: tauri::State<'_, MemoryModule>,
+    memory_module: tauri::State<'_, std::sync::Arc<MemoryModule>>,
     command: String,
     args: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    memory_module.execute(&command, args)
+    memory_module
+        .execute(&command, args)
         .await
         .map_err(|e| e.to_string())
 }
@@ -122,11 +126,12 @@ pub async fn manage_memory(
 /// Manage agent tasks
 #[tauri::command]
 pub async fn manage_agent_tasks(
-    agent_module: tauri::State<'_, AgentModule>,
+    agent_module: tauri::State<'_, std::sync::Arc<AgentModule>>,
     command: String,
     args: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    agent_module.execute(&command, args)
+    agent_module
+        .execute(&command, args)
         .await
         .map_err(|e| e.to_string())
 }
