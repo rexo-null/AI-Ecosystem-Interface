@@ -90,7 +90,7 @@ ISKIN/
 │   │   ├── sandbox/        # Docker (bollard), VNC (KasmVNC), Browser (CDP), Self-Healing
 │   │   ├── tools/          # Tool Registry, Tool Executor
 │   │   ├── llm.rs          # LLM Client (llama.cpp HTTP API)
-│   │   └── api/            # Tauri Commands (38+)
+│   │   └── api/            # Tauri Commands (40)
 │   └── Cargo.toml
 ├── src/                    # React Frontend
 │   ├── components/
@@ -157,7 +157,7 @@ ISKIN/
 - [x] BrowserAutomation (Chrome CDP: navigate/screenshot/JS/actions)
 - [x] SelfHealingLoop (health monitoring, auto-restart, error patterns)
 - [x] SandboxPanel UI (3 tabs: Containers, Browser, Health)
-- [x] 38 Tauri commands total
+- [x] 40 Tauri commands total
 
 ### Phase 4: LLM Integration — IN PROGRESS
 - [ ] llama.cpp HTTP client (replace candle placeholder)
@@ -232,7 +232,7 @@ IDLE → ANALYZING → PLANNING → CODING → TESTING → REVIEWING → REPORTI
 4. Модуль загрузится автоматически через `LifecycleManager`
 
 ### Tauri Commands
-Все команды определены в `src-tauri/src/api/commands.rs`. Текущий список: 38+ команд для Core, Knowledge, Code Search, Rules, LLM, Sandbox, Containers, VNC, Browser, Self-Healing.
+Все команды определены в `src-tauri/src/api/commands.rs`. Текущий список: 40 команд для Core, Knowledge, Code Search, Rules, LLM, Sandbox, Containers, VNC, Browser, Self-Healing.
 
 ## License
 
