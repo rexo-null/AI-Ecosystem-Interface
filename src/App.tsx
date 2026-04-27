@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { i18n } from './i18n';
 import FileTree from './components/FileTree';
 import KnowledgeBase from './components/KnowledgeBase';
 import EditorArea from './components/EditorArea';
@@ -12,10 +13,10 @@ function App() {
     <div className="app-container">
       {/* Header */}
       <header className="header">
-        <h1>ISKIN - AI-Powered IDE</h1>
+        <h1>{i18n.t('header.title')}</h1>
         <div style={{ flex: 1 }} />
-        <button className="btn">Run Agent</button>
-        <button className="btn btn-success">Sandbox</button>
+        <button className="btn">{i18n.t('header.runAgent')}</button>
+        <button className="btn btn-success">{i18n.t('header.sandbox')}</button>
       </header>
 
       {/* Sidebar */}
@@ -25,13 +26,13 @@ function App() {
             className={`sidebar-tab ${sidebarTab === 'files' ? 'active' : ''}`}
             onClick={() => setSidebarTab('files')}
           >
-            Files
+            {i18n.t('sidebar.files')}
           </button>
           <button 
             className={`sidebar-tab ${sidebarTab === 'knowledge' ? 'active' : ''}`}
             onClick={() => setSidebarTab('knowledge')}
           >
-            Knowledge
+            {i18n.t('sidebar.knowledge')}
           </button>
         </div>
         

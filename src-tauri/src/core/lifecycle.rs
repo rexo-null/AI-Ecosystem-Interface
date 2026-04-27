@@ -6,28 +6,59 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 use log::{info, warn, error};
+use wasmtime::{Engine, Module, Store, Instance, Linker};
 
 /// Represents a dynamically loaded module
+#[derive(Debug)]
 pub struct DynamicModule {
     pub id: String,
     pub name: String,
     pub version: String,
     pub library: Option<Library>,
+    pub wasm_instance: Option<WasmModule>,
     pub path: PathBuf,
     pub is_active: bool,
+    pub module_type: ModuleType,
+}
+
+#[derive(Debug, Clone)]
+pub enum ModuleType {
+    Dylib,
+    Wasm,
+}
+
+#[derive(Debug)]
+pub struct WasmModule {
+    pub module: Module,
+    pub store: Store<()>,
+    pub instance: Instance,
+}
+
+/// Information about a loaded module for API responses
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct DynamicModuleInfo {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    pub path: String,
+    pub is_active: bool,
+    pub module_type: String,
 }
 
 /// Lifecycle Manager - handles hot-reloading of modules without restarting the core
 pub struct LifecycleManager {
     modules: Arc<RwLock<HashMap<String, DynamicModule>>>,
     modules_dir: PathBuf,
+    wasm_engine: Engine,
 }
 
 impl LifecycleManager {
     pub fn new(modules_dir: PathBuf) -> Self {
+        let wasm_engine = Engine::default();
         Self {
             modules: Arc::new(RwLock::new(HashMap::new())),
             modules_dir,
+            wasm_engine,
         }
     }
 
@@ -41,15 +72,14 @@ impl LifecycleManager {
 
         info!("Loading module: {} from {:?}", file_name, path);
 
-        // Determine module type and load accordingly
-        let library = if path.extension().map_or(false, |ext| ext == "so" || ext == "dll" || ext == "dylib") {
+        let (module_type, library, wasm_instance) = if path.extension().map_or(false, |ext| ext == "so" || ext == "dll" || ext == "dylib") {
             // Dynamic library
-            unsafe { Library::new(path) }.context("Failed to load dynamic library")?
+            let lib = unsafe { Library::new(path) }.context("Failed to load dynamic library")?;
+            (ModuleType::Dylib, Some(lib), None)
         } else if path.extension().map_or(false, |ext| ext == "wasm") {
-            // WASM module - handled separately by Wasmtime
-            // For now, we'll skip actual loading and just register
-            info!("WASM module detected, registration only");
-            return self.register_wasm_module(&module_id, &file_name, path).await;
+            // WASM module
+            let wasm_module = self.load_wasm_module(path).await?;
+            (ModuleType::Wasm, None, Some(wasm_module))
         } else {
             anyhow::bail!("Unsupported module format");
         };
@@ -59,19 +89,44 @@ impl LifecycleManager {
             id: module_id.clone(),
             name: file_name,
             version: "0.1.0".to_string(),
-            library: Some(library),
+            library,
+            wasm_instance,
             path: path.to_path_buf(),
             is_active: true,
+            module_type,
         });
 
         info!("Module {} loaded successfully", module_id);
         Ok(module_id)
     }
 
+    /// Load WASM module using Wasmtime
+    async fn load_wasm_module(&self, path: &Path) -> Result<WasmModule> {
+        let module = Module::from_file(&self.wasm_engine, path)
+            .context("Failed to load WASM module")?;
+
+        let mut store = Store::new(&self.wasm_engine, ());
+        let mut linker = Linker::new(&self.wasm_engine);
+
+        // Add WASI imports for basic functionality
+        wasmtime_wasi::add_to_linker(&mut linker, |state: &mut ()| state)
+            .context("Failed to add WASI to linker")?;
+
+        let instance = linker
+            .instantiate(&mut store, &module)
+            .context("Failed to instantiate WASM module")?;
+
+        Ok(WasmModule {
+            module,
+            store,
+            instance,
+        })
+    }
+
     /// Unload a module safely
     pub async fn unload_module(&self, module_id: &str) -> Result<()> {
         let mut modules = self.modules.write().await;
-        
+
         if let Some(mut module) = modules.remove(module_id) {
             info!("Unloading module: {}", module.name);
             module.is_active = false;
@@ -87,66 +142,118 @@ impl LifecycleManager {
     /// Reload a module (unload + load) - key for self-improvement
     pub async fn reload_module(&self, module_id: &str, new_path: &Path) -> Result<String> {
         info!("Reloading module {} with new path {:?}", module_id, new_path);
-        
+
         // Unload old version
         self.unload_module(module_id).await?;
-        
+
         // Load new version
         let new_id = self.load_module(new_path).await?;
-        
+
         info!("Module reloaded successfully: {} -> {}", module_id, new_id);
         Ok(new_id)
     }
 
-    /// Register a WASM module (placeholder for Wasmtime integration)
-    async fn register_wasm_module(&self, module_id: &str, name: &str, path: &Path) -> Result<String> {
-        let mut modules = self.modules.write().await;
-        
-        modules.insert(module_id.to_string(), DynamicModule {
-            id: module_id.to_string(),
-            name: name.to_string(),
-            version: "0.1.0".to_string(),
-            library: None, // WASM handled by Wasmtime
-            path: path.to_path_buf(),
-            is_active: true,
-        });
-
-        Ok(module_id.to_string())
-    }
-
-    /// List all active modules
+    /// Get list of all modules
     pub async fn list_modules(&self) -> Vec<DynamicModuleInfo> {
         let modules = self.modules.read().await;
-        modules.values()
-            .filter(|m| m.is_active)
-            .map(|m| DynamicModuleInfo {
-                id: m.id.clone(),
-                name: m.name.clone(),
-                version: m.version.clone(),
-                path: m.path.clone(),
-                module_type: if m.path.extension().map_or(false, |ext| ext == "wasm") { 
-                    "wasm" 
-                } else { 
-                    "dylib" 
-                }.to_string(),
-            })
-            .collect()
+        modules.values().map(|module| {
+            DynamicModuleInfo {
+                id: module.id.clone(),
+                name: module.name.clone(),
+                version: module.version.clone(),
+                path: module.path.to_string_lossy().to_string(),
+                is_active: module.is_active,
+                module_type: format!("{:?}", module.module_type),
+            }
+        }).collect()
     }
 
-    /// Check if a module exists
-    pub async fn module_exists(&self, module_id: &str) -> bool {
+    /// Get module by ID
+    pub async fn get_module(&self, module_id: &str) -> Option<DynamicModuleInfo> {
         let modules = self.modules.read().await;
-        modules.contains_key(module_id)
+        modules.get(module_id).map(|module| {
+            DynamicModuleInfo {
+                id: module.id.clone(),
+                name: module.name.clone(),
+                version: module.version.clone(),
+                path: module.path.to_string_lossy().to_string(),
+                is_active: module.is_active,
+                module_type: format!("{:?}", module.module_type),
+            }
+        })
+    }
+
+    /// Scan modules directory and load all available modules
+    pub async fn scan_and_load_modules(&self) -> Result<Vec<String>> {
+        let mut loaded_modules = Vec::new();
+
+        if !self.modules_dir.exists() {
+            info!("Modules directory does not exist: {:?}", self.modules_dir);
+            return Ok(loaded_modules);
+        }
+
+        let entries = std::fs::read_dir(&self.modules_dir)
+            .context("Failed to read modules directory")?;
+
+        for entry in entries {
+            let entry = entry.context("Failed to read directory entry")?;
+            let path = entry.path();
+
+            if path.is_file() {
+                if let Some(ext) = path.extension() {
+                    if ext == "so" || ext == "dll" || ext == "dylib" || ext == "wasm" {
+                        match self.load_module(&path).await {
+                            Ok(module_id) => {
+                                loaded_modules.push(module_id);
+                            }
+                            Err(e) => {
+                                error!("Failed to load module {:?}: {}", path, e);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        info!("Loaded {} modules from {:?}", loaded_modules.len(), self.modules_dir);
+        Ok(loaded_modules)
+    }
+
+    /// Execute a function from a loaded module
+    pub async fn execute_module_function(&self, module_id: &str, function_name: &str, args: &[u8]) -> Result<Vec<u8>> {
+        let modules = self.modules.read().await;
+        let module = modules.get(module_id)
+            .context("Module not found")?;
+
+        if !module.is_active {
+            anyhow::bail!("Module is not active");
+        }
+
+        match &module.module_type {
+            ModuleType::Dylib => {
+                if let Some(lib) = &module.library {
+                    // For Dylib, we'd need to get function pointers
+                    // This is a simplified example
+                    anyhow::bail!("Dylib function execution not implemented");
+                } else {
+                    anyhow::bail!("No library loaded for module");
+                }
+            }
+            ModuleType::Wasm => {
+                if let Some(wasm) = &module.wasm_instance {
+                    // Execute WASM function
+                    let func = wasm.instance.get_typed_func::<(), ()>(&mut wasm.store, function_name)
+                        .context("Function not found in WASM module")?;
+
+                    func.call(&mut wasm.store, ())
+                        .context("Failed to execute WASM function")?;
+
+                    // For now, return empty result
+                    Ok(Vec::new())
+                } else {
+                    anyhow::bail!("No WASM instance loaded for module");
+                }
+            }
+        }
     }
 }
-
-#[derive(Clone, Debug)]
-pub struct DynamicModuleInfo {
-    pub id: String,
-    pub name: String,
-    pub version: String,
-    pub path: PathBuf,
-    pub module_type: String,
-}
-
-// Example usage in Tauri commands would be in api/commands.rs

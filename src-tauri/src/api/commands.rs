@@ -1,5 +1,7 @@
 use crate::core::LifecycleManager;
 use crate::memory::KnowledgeBase;
+use crate::llm::{LLMEngine, ChatRequest, Message, LLMResponse};
+use crate::modules::{ToolModule, MemoryModule, AgentModule};
 use serde::{Deserialize, Serialize};
 
 /// Simple ping command to test connectivity
@@ -66,3 +68,65 @@ pub async fn get_knowledge_entries(
 // - LLM chat
 // - Sandbox management
 // - Module hot-reload
+
+/// Chat with LLM
+#[tauri::command]
+pub async fn chat_with_llm(
+    llm: tauri::State<'_, LLMEngine>,
+    user_message: String,
+    system_prompt: Option<String>,
+) -> Result<LLMResponse, String> {
+    let messages = vec![
+        Message {
+            role: "user".to_string(),
+            content: user_message,
+        }
+    ];
+
+    let request = ChatRequest {
+        messages,
+        temperature: Some(0.7),
+        max_tokens: Some(2048),
+        system_prompt,
+    };
+
+    llm.chat(request)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Execute a tool
+#[tauri::command]
+pub async fn execute_tool(
+    tool_module: tauri::State<'_, ToolModule>,
+    tool_id: String,
+    args: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    tool_module.execute_tool(&tool_id, args)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Manage memory operations
+#[tauri::command]
+pub async fn manage_memory(
+    memory_module: tauri::State<'_, MemoryModule>,
+    command: String,
+    args: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    memory_module.execute(&command, args)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Manage agent tasks
+#[tauri::command]
+pub async fn manage_agent_tasks(
+    agent_module: tauri::State<'_, AgentModule>,
+    command: String,
+    args: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    agent_module.execute(&command, args)
+        .await
+        .map_err(|e| e.to_string())
+}
