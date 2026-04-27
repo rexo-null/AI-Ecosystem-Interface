@@ -300,25 +300,5 @@ export default function KnowledgeBase() {
         )}
       </div>
     </div>
-            </div>
-            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-              {entry.tags.map(tag => (
-                <span key={tag} style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>#{tag}</span>
-              ))}
-            </div>
-            <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-secondary)' }}>
-              Priority: {entry.priority}/10
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <button 
-        className="btn"
-        style={{ marginTop: '16px', width: '100%' }}
-      >
-        + Add New Entry
-      </button>
-    </div>
   );
 }

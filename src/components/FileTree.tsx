@@ -69,7 +69,6 @@ export default function FileTree() {
             alignItems: 'center',
             gap: '8px',
             fontSize: '13px',
-            hover: 'var(--bg-tertiary)',
             transition: 'background-color 0.2s',
           }}
           onClick={() => {

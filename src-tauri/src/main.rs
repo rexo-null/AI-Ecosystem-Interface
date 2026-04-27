@@ -90,7 +90,6 @@ async fn main() -> anyhow::Result<()> {
             api::commands::manage_memory,
             api::commands::manage_agent_tasks,
         ])
-        ])
         .run(tauri::generate_context!())
         .expect("error while running ISKIN");
     
