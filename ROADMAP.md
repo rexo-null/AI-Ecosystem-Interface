@@ -23,7 +23,7 @@
 - [x] BrowserAutomation (Headless Chrome via CDP: navigate/screenshot/JS/action sequences)
 - [x] SelfHealingLoop (health monitoring, auto-restart, error pattern detection OOM/CrashLoop/Network/Disk)
 - [x] SandboxPanel UI (3 tabs: Containers, Browser, Health)
-- [x] 38 Tauri commands total
+- [x] 40 Tauri commands total
 
 ## Phase 4: LLM Integration (Weeks 8-10) — IN PROGRESS
 - [ ] Убрать candle-core (не компилируется, не используется) → HTTP-клиент к llama.cpp
@@ -107,7 +107,7 @@
 - React frontend: VS Code layout, 4 sidebar tabs (Files, Knowledge, Search, Sandbox)
 - Memory: KnowledgeBase + SemanticIndexer + VectorStore + RulesEngine
 - Sandbox: ContainerManager + VncManager + BrowserAutomation + SelfHealingLoop
-- 38 Tauri commands, i18n (RU/EN), Zustand store
+- 40 Tauri commands, i18n (RU/EN), Zustand store
 
 ### Следующий шаг:
 1. LLM Client (llama.cpp HTTP API) → заменить candle placeholder

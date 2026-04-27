@@ -172,7 +172,7 @@
 - BrowserAutomation (Chrome CDP)
 - SelfHealingLoop (мониторинг, авто-рестарт, паттерны ошибок)
 - SandboxPanel UI
-- 38 Tauri-команд
+- 40 Tauri-команд
 
 ### Фаза 4: LLM Integration (Следующая)
 **Цель:** Подключить реальную LLM через чистый llama.cpp
