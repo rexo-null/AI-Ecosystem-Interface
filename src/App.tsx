@@ -2,12 +2,23 @@ import { useState } from 'react';
 import { i18n } from './i18n';
 import FileTree from './components/FileTree';
 import KnowledgeBase from './components/KnowledgeBase';
+import CodeSearch from './components/CodeSearch';
 import EditorArea from './components/EditorArea';
 import ChatPanel from './components/ChatPanel';
 import TerminalPanel from './components/TerminalPanel';
 
+type SidebarTab = 'files' | 'knowledge' | 'search';
+
 function App() {
-  const [sidebarTab, setSidebarTab] = useState<'files' | 'knowledge'>('files');
+  const [sidebarTab, setSidebarTab] = useState<SidebarTab>('files');
+
+  const renderSidebarContent = () => {
+    switch (sidebarTab) {
+      case 'files': return <FileTree />;
+      case 'knowledge': return <KnowledgeBase />;
+      case 'search': return <CodeSearch />;
+    }
+  };
 
   return (
     <div className="app-container">
@@ -34,9 +45,15 @@ function App() {
           >
             {i18n.t('sidebar.knowledge')}
           </button>
+          <button
+            className={`sidebar-tab ${sidebarTab === 'search' ? 'active' : ''}`}
+            onClick={() => setSidebarTab('search')}
+          >
+            {i18n.t('sidebar.search')}
+          </button>
         </div>
         
-        {sidebarTab === 'files' ? <FileTree /> : <KnowledgeBase />}
+        {renderSidebarContent()}
       </aside>
 
       {/* Main Editor Area */}
