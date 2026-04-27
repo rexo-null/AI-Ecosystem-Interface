@@ -504,7 +504,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       const stored = localStorage.getItem(MEMORY_STORAGE_KEY);
       if (stored) {
         const entries = JSON.parse(stored);
-        set({ memoryEntries: entries });
+        set({ memoryEntries: entries, allMemoryEntries: entries });
       }
     } catch (error) {
       console.error('Failed to load memory:', error);
@@ -513,7 +513,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
   saveMemory: () => {
     try {
-      const entries = get().memoryEntries;
+      const entries = get().allMemoryEntries;
       localStorage.setItem(MEMORY_STORAGE_KEY, JSON.stringify(entries));
     } catch (error) {
       console.error('Failed to save memory:', error);

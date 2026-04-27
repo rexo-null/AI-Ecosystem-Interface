@@ -5,6 +5,15 @@ use tokio::sync::RwLock;
 use log::{info, warn, error};
 use async_process::{Command, Child, Stdio};
 
+/// Escape a string for safe embedding in a JavaScript single-quoted string literal.
+fn escape_js_string(s: &str) -> String {
+    s.replace('\\', "\\\\")
+     .replace('\'', "\\'")
+     .replace('\n', "\\n")
+     .replace('\r', "\\r")
+     .replace('\0', "\\0")
+}
+
 /// Browser automation configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BrowserConfig {
@@ -324,7 +333,7 @@ impl BrowserAutomation {
                     }
                 }
                 BrowserAction::Click { selector } => {
-                    let script = format!(r#"document.querySelector('{}')?.click()"#, selector);
+                    let script = format!(r#"document.querySelector('{}')?.click()"#, escape_js_string(&selector));
                     match self.execute_js(&script).await {
                         Ok(_) => ("click".to_string(), true, format!("Clicked: {}", selector), None, None),
                         Err(e) => ("click".to_string(), false, e.to_string(), None, None),
@@ -333,7 +342,7 @@ impl BrowserAutomation {
                 BrowserAction::Type { selector, text } => {
                     let script = format!(
                         r#"const el = document.querySelector('{}'); if(el) {{ el.value = '{}'; el.dispatchEvent(new Event('input')); }}"#,
-                        selector, text.replace('\'', "\\'")
+                        escape_js_string(&selector), escape_js_string(&text)
                     );
                     match self.execute_js(&script).await {
                         Ok(_) => ("type".to_string(), true, format!("Typed into: {}", selector), None, None),
@@ -344,7 +353,7 @@ impl BrowserAutomation {
                     let timeout = timeout_ms.unwrap_or(5000);
                     let script = format!(
                         r#"new Promise((resolve) => {{ const check = () => {{ if(document.querySelector('{}')) resolve(true); else setTimeout(check, 100); }}; check(); setTimeout(() => resolve(false), {}); }})"#,
-                        selector, timeout
+                        escape_js_string(&selector), timeout
                     );
                     match self.execute_js(&script).await {
                         Ok(r) => ("wait_for_selector".to_string(), true, format!("Found: {}", selector), None, Some(r)),
