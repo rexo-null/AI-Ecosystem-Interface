@@ -88,6 +88,83 @@
 
 ---
 
+## Анализ рисков и меры защиты
+
+### Риск 1: Hot-Reload Self-Improvement — "двойной меч"
+
+**Угроза:** Агент может войти в бесконечный цикл саморефакторинга, дегенерировать поведение, или обойти PolicyEngine через модифицированный код.
+
+**Архитектурные меры:**
+
+1. **Immutable Core** — LifecycleManager, PolicyEngine, State Machine НИКОГДА не перезагружаются. Hardcoded boundary: модуль не может модифицировать файлы из `src-tauri/src/core/`.
+
+2. **Pre-reload validation pipeline:**
+   ```
+   Новый модуль → Компиляция в Docker → Автотесты → Format check → 
+   → Snapshot текущего состояния → PolicyEngine.requires_confirmation() →
+   → reload_module() → Мониторинг 60 сек → OK или auto-rollback
+   ```
+
+3. **Snapshot Rollback** — перед каждым reload сохраняется `.so`/`.wasm` предыдущей версии. При crash, panic, или деградации метрик — автоматический откат.
+
+4. **Dry-run режим** — для критических модулей (AgentModule, ToolModule): новая версия запускается параллельно, результаты сравниваются со старой, замена только при подтверждении.
+
+5. **Кворум на критические изменения** — если модуль затрагивает безопасность или ядро → обязательное подтверждение пользователя (даже в Permissive mode).
+
+Референс: LangGraph checkpoint/state rollback модель.
+
+### Риск 2: PolicyEngine — обход через косвенные формулировки
+
+**Угроза:** LLM обходит текстовые фильтры через разбитые команды (`r` + `m` + ` -rf /`), косвенные формулировки, или многошаговые атаки.
+
+**Архитектурные меры:**
+
+1. **Валидация структуры, не текста** — PolicyEngine проверяет JSON Schema вызова инструмента (имя тула, типы аргументов, допустимые значения), а не текст промпта.
+
+2. **Строгие JSON Schema для каждого инструмента:**
+   ```rust
+   // Каждый tool call проходит через:
+   ToolSchema::validate(tool_name, args) → Ok(validated_args) | Err(tool_validation_error)
+   // Агент получает tool_validation_error, а не ошибку исполнения
+   ```
+
+3. **Allowlist/Denylist на уровне Docker:**
+   - seccomp профили (запрет системных вызовов)
+   - AppArmor/SELinux для ограничения файловой системы
+   - Network policy: только localhost и разрешённые домены
+
+4. **Цепочка валидации:**
+   ```
+   LLM output → JSON parse → Schema validation → PolicyEngine check → 
+   → Resource limits check → Execute in sandbox → Return result
+   ```
+
+### Риск 3: Qwen 2.5 Coder 14B + llama.cpp — подводные камни
+
+**Проблема 1: Tool calling — невалидный JSON.**
+LLM может генерировать JSON с лишним текстом, незакрытыми скобками, или комментариями.
+
+**Решение:**
+- Regex extraction JSON из ответа (`\{.*\}` greedy match)
+- Fallback: повторный запрос с инструкцией "respond ONLY with valid JSON"
+- Максимум 3 retry, затем ошибка пользователю
+
+**Проблема 2: Context window — деградация при >32K.**
+
+**Решение:**
+- Дефолтный context: 8192 токенов в `config/llm.toml`
+- Summarization: при превышении лимита — сжатие истории через LLM
+- Sliding window: хранить последние N сообщений + system prompt
+
+**Проблема 3: Квантование — баланс качество/скорость.**
+
+**Решение:**
+- Q4_K_M (~9.2 GB) — дефолт, оптимальный баланс
+- Q5_K_M (~10.5 GB) — опция для пользователей с >16GB VRAM
+- Настраивается в `config/llm.toml: quantization`
+
+---
+
 ## Состояния агента (State Machine)
 
 ```
