@@ -10,6 +10,7 @@ mod sandbox;
 mod tools;
 mod api;
 mod llm;
+mod terminal;
 
 use core::{LifecycleManager, PolicyEngine, ResourceManager, security::PolicyLevel};
 use memory::{KnowledgeBase, SemanticIndexer, RulesEngine, VectorStore};
@@ -20,6 +21,7 @@ use sandbox::container::ContainerManager;
 use sandbox::vnc::VncManager;
 use sandbox::browser::{BrowserAutomation, BrowserConfig};
 use sandbox::self_healing::SelfHealingLoop;
+use terminal::TerminalManager;
 use std::sync::Arc;
 use std::path::PathBuf;
 use log::info;
@@ -112,6 +114,9 @@ async fn main() -> anyhow::Result<()> {
     let browser_automation = BrowserAutomation::new(BrowserConfig::default());
     let self_healing = SelfHealingLoop::new();
 
+    // Initialize Terminal Manager
+    let terminal_manager = TerminalManager::new();
+
     info!("ISKIN core initialized successfully");
     info!("Modules directory: {:?}", modules_dir);
     info!("Data directory: {:?}", data_dir);
@@ -136,6 +141,7 @@ async fn main() -> anyhow::Result<()> {
         .manage(vnc_manager)
         .manage(browser_automation)
         .manage(self_healing)
+        .manage(terminal_manager)
         .invoke_handler(tauri::generate_handler![
             // Core
             api::commands::ping,
@@ -192,6 +198,12 @@ async fn main() -> anyhow::Result<()> {
             api::commands::get_healing_events,
             // Sandbox — Status
             api::commands::get_sandbox_status,
+            // Terminal
+            api::commands::terminal_create,
+            api::commands::terminal_write,
+            api::commands::terminal_resize,
+            api::commands::terminal_close,
+            api::commands::terminal_list,
         ])
         .run(tauri::generate_context!())
         .expect("error while running ISKIN");

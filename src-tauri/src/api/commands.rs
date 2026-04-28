@@ -5,6 +5,7 @@ use crate::memory::indexer::{IndexEntry, IndexStats, CodeSymbol, Language, Symbo
 use crate::memory::rules_engine::{Rule, RuleUpdate, EvaluationResult, RulePriority, ConditionType, RuleAction};
 use crate::memory::vector_store::SearchResult as VectorSearchResult;
 use crate::llm::{LLMEngine, ChatRequest, Message, LLMResponse, LLMStatus};
+use crate::terminal::{TerminalManager, TerminalInfo};
 use crate::modules::{ToolModule, MemoryModule, AgentModule};
 use crate::sandbox::container::{
     ContainerManager, ContainerConfig as SandboxContainerConfig,
@@ -840,4 +841,63 @@ pub async fn get_sandbox_status(
         browser_status,
         healing_stats,
     })
+}
+
+// ============================================================
+// Terminal Commands
+// ============================================================
+
+#[tauri::command]
+pub async fn terminal_create(
+    terminal_id: String,
+    cols: Option<u16>,
+    rows: Option<u16>,
+    manager: tauri::State<'_, TerminalManager>,
+    app_handle: tauri::AppHandle,
+) -> Result<TerminalInfo, String> {
+    let cols = cols.unwrap_or(80);
+    let rows = rows.unwrap_or(24);
+    manager.create(terminal_id, cols, rows, app_handle)
+        .await
+        .map_err(|e| format!("Failed to create terminal: {}", e))
+}
+
+#[tauri::command]
+pub async fn terminal_write(
+    terminal_id: String,
+    data: String,
+    manager: tauri::State<'_, TerminalManager>,
+) -> Result<(), String> {
+    manager.write(&terminal_id, &data)
+        .await
+        .map_err(|e| format!("Failed to write to terminal: {}", e))
+}
+
+#[tauri::command]
+pub async fn terminal_resize(
+    terminal_id: String,
+    cols: u16,
+    rows: u16,
+    manager: tauri::State<'_, TerminalManager>,
+) -> Result<(), String> {
+    manager.resize(&terminal_id, cols, rows)
+        .await
+        .map_err(|e| format!("Failed to resize terminal: {}", e))
+}
+
+#[tauri::command]
+pub async fn terminal_close(
+    terminal_id: String,
+    manager: tauri::State<'_, TerminalManager>,
+) -> Result<(), String> {
+    manager.close(&terminal_id)
+        .await
+        .map_err(|e| format!("Failed to close terminal: {}", e))
+}
+
+#[tauri::command]
+pub async fn terminal_list(
+    manager: tauri::State<'_, TerminalManager>,
+) -> Result<Vec<TerminalInfo>, String> {
+    Ok(manager.list().await)
 }

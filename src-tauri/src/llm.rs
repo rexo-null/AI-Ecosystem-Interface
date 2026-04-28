@@ -322,13 +322,16 @@ impl LLMEngine {
 
     /// Send a chat request and get the full response (non-streaming)
     pub async fn chat(&self, request: ChatRequest) -> anyhow::Result<LLMResponse> {
-        let mut history = self.conversation_history.lock().await;
+        // Acquire lock, push user message, read full history, then release
+        let history_snapshot = {
+            let mut history = self.conversation_history.lock().await;
+            if let Some(msg) = request.messages.last() {
+                history.push(msg.clone());
+            }
+            history.clone()
+        };
 
-        if let Some(msg) = request.messages.last() {
-            history.push(msg.clone());
-        }
-
-        // Build messages array with system prompt + history
+        // Build messages array with system prompt + full conversation history
         let mut llama_messages = Vec::new();
 
         if let Some(ref system) = request.system_prompt {
@@ -338,7 +341,7 @@ impl LLMEngine {
             });
         }
 
-        for msg in request.messages.iter() {
+        for msg in history_snapshot.iter() {
             llama_messages.push(LlamaCppMessage {
                 role: msg.role.clone(),
                 content: msg.content.clone(),
@@ -373,6 +376,8 @@ impl LLMEngine {
                     .map(|u| u.total_tokens)
                     .unwrap_or(0);
 
+                // Re-acquire lock to push assistant response
+                let mut history = self.conversation_history.lock().await;
                 history.push(Message {
                     role: "assistant".to_string(),
                     content: content.clone(),
@@ -396,7 +401,6 @@ impl LLMEngine {
             }
             Err(e) if e.is_connect() => {
                 warn!("llama-server not available at {}", url);
-                // Fallback: return informative message when server is offline
                 let content = format!(
                     "LLM сервер не запущен ({}). Запустите llama-server командой:\n\n\
                     ```bash\n./scripts/run.sh\n```\n\n\
@@ -414,6 +418,7 @@ impl LLMEngine {
                     self.config.server.port,
                 );
 
+                let mut history = self.conversation_history.lock().await;
                 history.push(Message {
                     role: "assistant".to_string(),
                     content: content.clone(),
@@ -438,13 +443,16 @@ impl LLMEngine {
     ) -> anyhow::Result<()> {
         self.is_generating.store(true, Ordering::SeqCst);
 
-        let mut history = self.conversation_history.lock().await;
-        if let Some(msg) = request.messages.last() {
-            history.push(msg.clone());
-        }
-        drop(history);
+        // Acquire lock, push user message, snapshot full history, then release
+        let history_snapshot = {
+            let mut history = self.conversation_history.lock().await;
+            if let Some(msg) = request.messages.last() {
+                history.push(msg.clone());
+            }
+            history.clone()
+        };
 
-        // Build messages
+        // Build messages from full conversation history
         let mut llama_messages = Vec::new();
 
         if let Some(ref system) = request.system_prompt {
@@ -454,7 +462,7 @@ impl LLMEngine {
             });
         }
 
-        for msg in request.messages.iter() {
+        for msg in history_snapshot.iter() {
             llama_messages.push(LlamaCppMessage {
                 role: msg.role.clone(),
                 content: msg.content.clone(),
@@ -506,6 +514,7 @@ impl LLMEngine {
 
                                 if let Some(data) = line.strip_prefix("data: ") {
                                     if data.trim() == "[DONE]" {
+                                        self.is_generating.store(false, Ordering::SeqCst);
                                         break;
                                     }
 
