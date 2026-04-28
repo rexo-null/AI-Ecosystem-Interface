@@ -6,7 +6,7 @@ use crate::memory::rules_engine::{Rule, RuleUpdate, EvaluationResult, RulePriori
 use crate::memory::vector_store::SearchResult as VectorSearchResult;
 use crate::llm::{LLMEngine, ChatRequest, Message, LLMResponse, LLMStatus};
 use crate::terminal::{TerminalManager, TerminalInfo};
-use crate::modules::{ToolModule, MemoryModule, AgentModule};
+use crate::modules::{ToolModule, MemoryModule, AgentModule, ISKINModule};
 use crate::sandbox::container::{
     ContainerManager, ContainerConfig as SandboxContainerConfig,
     ContainerStatus, ManagedContainer, DockerStatus, ExecResult,

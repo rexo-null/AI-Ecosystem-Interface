@@ -21,6 +21,7 @@ log = "0.4"
 env_logger = "0.11"
 libloading = "0.8"  # For dynamic library loading
 wasmtime = "19.0"   # For WASM module support
+wasmtime-wasi = "19.0"  # WASI support for WASM
 uuid = { version = "1.0", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 async-trait = "0.1"  # For async trait definitions

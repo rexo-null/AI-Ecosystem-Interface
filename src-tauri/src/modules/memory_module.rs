@@ -210,7 +210,7 @@ impl MemoryModule {
 }
 
 /// Update structure for memory entries
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MemoryEntryUpdate {
     pub title: Option<String>,
     pub content: Option<String>,

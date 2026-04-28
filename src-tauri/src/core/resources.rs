@@ -50,8 +50,8 @@ impl ResourceManager {
     /// Set resource limits
     pub async fn set_limits(&self, limits: ResourceLimits) {
         let mut current = self.limits.write().await;
-        *current = limits;
         info!("Resource limits updated: {:?}", limits);
+        *current = limits;
     }
 
     /// Get current limits
@@ -105,7 +105,7 @@ impl ResourceManager {
     pub async fn release_resources(&self, used: &ResourceUsage) {
         let mut current = self.current_usage.write().await;
         current.memory_mb = current.memory_mb.saturating_sub(used.memory_mb);
-        current.cpu_percent = current.cpu_percent.saturating_sub(used.cpu_percent);
+        current.cpu_percent = (current.cpu_percent - used.cpu_percent).max(0.0);
         current.disk_mb = current.disk_mb.saturating_sub(used.disk_mb);
         current.active_connections = current.active_connections.saturating_sub(used.active_connections);
     }

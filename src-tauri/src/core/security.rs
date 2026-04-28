@@ -70,20 +70,19 @@ impl PolicyEngine {
                     DangerousAction::ModuleReload(_)
                 )
             }
-            PolicyLevel::Balanced => {
-                matches!(action,
-                    DangerousAction::FileDelete(_) |
-                    DangerousAction::SystemCommand(cmd) if cmd.contains("rm -rf") || cmd.contains("sudo") || cmd.contains("format")
-                )
-            }
+            PolicyLevel::Balanced => match action {
+                DangerousAction::FileDelete(_) => true,
+                DangerousAction::SystemCommand(cmd) if cmd.contains("rm -rf") || cmd.contains("sudo") || cmd.contains("format") => true,
+                _ => false,
+            },
             PolicyLevel::Permissive => false,
         }
     }
 
     /// Add an action to the blocked list
     pub async fn block_action(&self, action: DangerousAction) {
+        info!("Action blocked: {:?}", &action);
         self.blocked_actions.write().await.insert(action);
-        info!("Action blocked: {:?}", action);
     }
 
     /// Remove an action from the blocked list

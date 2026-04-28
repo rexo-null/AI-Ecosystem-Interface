@@ -298,8 +298,8 @@ impl ContainerManager {
                 image: Some(config.image.clone()),
                 env: if env.is_empty() { None } else { Some(env) },
                 exposed_ports: if exposed_ports.is_empty() { None } else { Some(exposed_ports) },
-                working_dir: config.working_dir.as_deref(),
-                cmd: config.command.as_ref().map(|c| c.iter().map(|s| s.as_str()).collect()),
+                working_dir: config.working_dir.clone(),
+                cmd: config.command.clone(),
                 host_config: Some(host_config),
                 ..Default::default()
             };

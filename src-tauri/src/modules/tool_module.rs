@@ -39,9 +39,10 @@ impl ToolModule {
 
     /// Register a new tool
     pub async fn register_tool(&self, tool: ToolDefinition) -> anyhow::Result<()> {
+        let tool_name = tool.name.clone();
         let mut tools = self.tools.write().await;
         tools.insert(tool.id.clone(), tool);
-        info!("Registered tool: {}", tool.name);
+        info!("Registered tool: {}", tool_name);
         Ok(())
     }
 

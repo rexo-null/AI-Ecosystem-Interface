@@ -30,7 +30,7 @@ pub enum ModuleType {
 #[derive(Debug)]
 pub struct WasmModule {
     pub module: Module,
-    pub store: Store<()>,
+    pub store: Arc<RwLock<Store<()>>>,
     pub instance: Instance,
 }
 
@@ -108,9 +108,9 @@ impl LifecycleManager {
         let mut store = Store::new(&self.wasm_engine, ());
         let mut linker = Linker::new(&self.wasm_engine);
 
-        // Add WASI imports for basic functionality
-        wasmtime_wasi::add_to_linker(&mut linker, |state: &mut ()| state)
-            .context("Failed to add WASI to linker")?;
+        // For now, skip WASI setup - it requires proper Component API integration
+        // This is simplified WASM support without full WASI
+        // TODO: Implement proper WASI support with wasmtime::component::Linker
 
         let instance = linker
             .instantiate(&mut store, &module)
@@ -118,7 +118,7 @@ impl LifecycleManager {
 
         Ok(WasmModule {
             module,
-            store,
+            store: Arc::new(RwLock::new(store)),
             instance,
         })
     }
@@ -242,10 +242,12 @@ impl LifecycleManager {
             ModuleType::Wasm => {
                 if let Some(wasm) = &module.wasm_instance {
                     // Execute WASM function
-                    let func = wasm.instance.get_typed_func::<(), ()>(&mut wasm.store, function_name)
+                    let mut store_mut = wasm.store.write().await;
+                    let mut store_ref = &mut *store_mut;
+                    let func = wasm.instance.get_typed_func::<(), ()>(&mut store_ref, function_name)
                         .context("Function not found in WASM module")?;
 
-                    func.call(&mut wasm.store, ())
+                    func.call(&mut store_ref, ())
                         .context("Failed to execute WASM function")?;
 
                     // For now, return empty result
