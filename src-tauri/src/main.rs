@@ -14,7 +14,7 @@ mod llm;
 use core::{LifecycleManager, PolicyEngine, ResourceManager, security::PolicyLevel};
 use memory::{KnowledgeBase, SemanticIndexer, RulesEngine, VectorStore};
 use memory::vector_store::VectorStoreConfig;
-use llm::LLMEngine;
+use llm::{LLMEngine, LLMConfig};
 use modules::{ToolModule, MemoryModule, AgentModule, ISKINModule};
 use sandbox::container::ContainerManager;
 use sandbox::vnc::VncManager;
@@ -66,8 +66,28 @@ async fn main() -> anyhow::Result<()> {
     let vector_store = VectorStore::new(VectorStoreConfig::default());
     vector_store.initialize().await?;
 
-    // Initialize LLM engine
-    let llm_engine = LLMEngine::new("Qwen-2.5-Coder-14B".to_string());
+    // Load LLM configuration
+    let config_dir = app_dir.join("config");
+    std::fs::create_dir_all(&config_dir)?;
+    let llm_config_path = config_dir.join("llm.toml");
+    let llm_config = if llm_config_path.exists() {
+        match LLMConfig::load_from_file(&llm_config_path) {
+            Ok(config) => {
+                info!("LLM config loaded from {:?}", llm_config_path);
+                config
+            }
+            Err(e) => {
+                log::warn!("Failed to load LLM config: {}, using defaults", e);
+                LLMConfig::default()
+            }
+        }
+    } else {
+        info!("No LLM config found at {:?}, using defaults", llm_config_path);
+        LLMConfig::default()
+    };
+
+    // Initialize LLM engine with config
+    let llm_engine = LLMEngine::new(llm_config);
     llm_engine.initialize().await?;
 
     // Initialize built-in modules
@@ -138,6 +158,10 @@ async fn main() -> anyhow::Result<()> {
             api::commands::evaluate_rules,
             // LLM
             api::commands::chat_with_llm,
+            api::commands::chat_with_llm_stream,
+            api::commands::llm_status,
+            api::commands::llm_stop_generation,
+            api::commands::llm_clear_history,
             // Modules
             api::commands::execute_tool,
             api::commands::manage_memory,
