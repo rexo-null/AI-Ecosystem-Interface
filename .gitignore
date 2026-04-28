@@ -31,6 +31,13 @@ npm-debug.log*
 
 # Models (large binary files)
 models/
+*.gguf
+
+# llama.cpp build
+llama.cpp/
 
 # Tauri
 src-tauri/icons/
+
+# Data (runtime generated)
+data/

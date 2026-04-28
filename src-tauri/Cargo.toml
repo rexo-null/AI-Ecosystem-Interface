@@ -25,10 +25,8 @@ uuid = { version = "1.0", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 async-trait = "0.1"  # For async trait definitions
 
-# LLM Integration
-candle-core = "0.6"
-candle-transformers = "0.6"
-tokenizers = "0.19"
+# LLM Integration (HTTP client to llama.cpp)
+toml_edit = "0.22"  # Config parsing
 
 # Rules Engine
 regex = "1.10"
@@ -43,7 +41,7 @@ tree-sitter-python = "0.20"
 # Sandbox
 bollard = "0.17"  # Docker API client
 async-process = "2.0"
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.12", features = ["json", "stream"] }
 futures-util = "0.3"
 
 # Security

@@ -4,7 +4,7 @@ use crate::memory::knowledge_base::{MemoryType, MemoryEntry, SearchOptions, Know
 use crate::memory::indexer::{IndexEntry, IndexStats, CodeSymbol, Language, SymbolKind};
 use crate::memory::rules_engine::{Rule, RuleUpdate, EvaluationResult, RulePriority, ConditionType, RuleAction};
 use crate::memory::vector_store::SearchResult as VectorSearchResult;
-use crate::llm::{LLMEngine, ChatRequest, Message, LLMResponse};
+use crate::llm::{LLMEngine, ChatRequest, Message, LLMResponse, LLMStatus};
 use crate::modules::{ToolModule, MemoryModule, AgentModule};
 use crate::sandbox::container::{
     ContainerManager, ContainerConfig as SandboxContainerConfig,
@@ -406,6 +406,7 @@ pub async fn evaluate_rules(
 // LLM Commands
 // ============================================================
 
+/// Send a chat message (non-streaming, returns full response)
 #[tauri::command]
 pub async fn chat_with_llm(
     llm: tauri::State<'_, LLMEngine>,
@@ -421,14 +422,68 @@ pub async fn chat_with_llm(
 
     let request = ChatRequest {
         messages,
-        temperature: Some(0.7),
-        max_tokens: Some(2048),
+        temperature: None,
+        max_tokens: None,
         system_prompt,
     };
 
     llm.chat(request)
         .await
         .map_err(|e| e.to_string())
+}
+
+/// Send a chat message with SSE streaming (emits llm-token, llm-done, llm-error events)
+#[tauri::command]
+pub async fn chat_with_llm_stream(
+    llm: tauri::State<'_, LLMEngine>,
+    app_handle: tauri::AppHandle,
+    user_message: String,
+    system_prompt: Option<String>,
+    message_id: String,
+) -> Result<(), String> {
+    let messages = vec![
+        Message {
+            role: "user".to_string(),
+            content: user_message,
+        }
+    ];
+
+    let request = ChatRequest {
+        messages,
+        temperature: None,
+        max_tokens: None,
+        system_prompt,
+    };
+
+    llm.chat_stream(request, message_id, app_handle)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Check LLM server status (online/offline, model info)
+#[tauri::command]
+pub async fn llm_status(
+    llm: tauri::State<'_, LLMEngine>,
+) -> Result<LLMStatus, String> {
+    Ok(llm.status().await)
+}
+
+/// Stop the current LLM generation
+#[tauri::command]
+pub async fn llm_stop_generation(
+    llm: tauri::State<'_, LLMEngine>,
+) -> Result<(), String> {
+    llm.stop_generation();
+    Ok(())
+}
+
+/// Clear LLM conversation history
+#[tauri::command]
+pub async fn llm_clear_history(
+    llm: tauri::State<'_, LLMEngine>,
+) -> Result<(), String> {
+    llm.clear_history().await;
+    Ok(())
 }
 
 // ============================================================

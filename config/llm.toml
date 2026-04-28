@@ -1,0 +1,38 @@
+# ISKIN LLM Configuration
+# Конфигурация подключения к llama-server и параметров модели.
+# Все параметры имеют значения по умолчанию — этот файл можно редактировать
+# без изменения кода ISKIN.
+
+[llm]
+endpoint = "http://127.0.0.1:8080"
+context_length = 8192        # Токенов контекста (8192 — баланс скорость/качество)
+temperature = 0.2            # Креативность (0.0-1.0, для кода лучше 0.1-0.3)
+max_tokens = 2048            # Максимум токенов в ответе
+gpu_layers = 45              # Слоёв в VRAM (~60% для 12GB, -1 = все)
+threads = 8                  # CPU threads для вычислений
+
+[model]
+path = "models/qwen2.5-coder-14b-instruct-Q4_K_M.gguf"
+name = "Qwen2.5-Coder-14B"
+
+[model_profile]
+chat_template = "chatml"           # chatml / llama3 / mistral / custom
+tool_call_format = "json_block"    # json_block / function_call / xml
+stop_tokens = ["<|im_end|>", "<|endoftext|>"]
+
+# Параметры llama-server (используются в scripts/run.sh)
+[server]
+host = "127.0.0.1"
+port = 8080
+batch_size = 512             # Размер батча (для throughput)
+ubatch_size = 64             # Размер микробатча
+flash_attn = true            # Flash Attention (ускоряет inference)
+cache_type_k = "q4_0"       # Сжатие KV cache (экономит VRAM)
+
+# ============================================================
+# Замена модели — "открутил → поставил":
+# 1. Скачать новый .gguf (Qwen3, DeepSeek-Coder-V3, Llama 4, и т.д.)
+# 2. Изменить model.path и model.name
+# 3. При необходимости — изменить model_profile (chat_template, stop_tokens)
+# 4. Перезапустить llama-server: ./scripts/run.sh
+# ============================================================
