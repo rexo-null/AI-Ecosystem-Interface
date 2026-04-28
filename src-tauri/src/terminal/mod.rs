@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use tokio::sync::Mutex;
+use std::sync::Mutex;
 use tauri::Emitter;
 
 // ============================================================
@@ -59,7 +59,7 @@ impl TerminalManager {
     }
 
     /// Create a new terminal session with a PTY
-    pub async fn create(
+    pub fn create(
         &self,
         terminal_id: String,
         cols: u16,
@@ -159,15 +159,15 @@ impl TerminalManager {
             child,
         };
 
-        self.sessions.lock().await.insert(terminal_id.clone(), session);
+        self.sessions.lock().unwrap().insert(terminal_id.clone(), session);
         info!("Terminal created: {}", terminal_id);
 
         Ok(info)
     }
 
     /// Write data to a terminal (user input)
-    pub async fn write(&self, terminal_id: &str, data: &str) -> Result<()> {
-        let mut sessions = self.sessions.lock().await;
+    pub fn write(&self, terminal_id: &str, data: &str) -> Result<()> {
+        let mut sessions = self.sessions.lock().unwrap();
         let session = sessions
             .get_mut(terminal_id)
             .context(format!("Terminal not found: {}", terminal_id))?;
@@ -185,8 +185,8 @@ impl TerminalManager {
     }
 
     /// Resize a terminal
-    pub async fn resize(&self, terminal_id: &str, cols: u16, rows: u16) -> Result<()> {
-        let mut sessions = self.sessions.lock().await;
+    pub fn resize(&self, terminal_id: &str, cols: u16, rows: u16) -> Result<()> {
+        let mut sessions = self.sessions.lock().unwrap();
         let session = sessions
             .get_mut(terminal_id)
             .context(format!("Terminal not found: {}", terminal_id))?;
@@ -206,8 +206,8 @@ impl TerminalManager {
     }
 
     /// Close a terminal session
-    pub async fn close(&self, terminal_id: &str) -> Result<()> {
-        let mut sessions = self.sessions.lock().await;
+    pub fn close(&self, terminal_id: &str) -> Result<()> {
+        let mut sessions = self.sessions.lock().unwrap();
         if let Some(mut session) = sessions.remove(terminal_id) {
             session.is_alive.store(false, Ordering::SeqCst);
             // Kill the child process
@@ -220,8 +220,8 @@ impl TerminalManager {
     }
 
     /// List all terminal sessions
-    pub async fn list(&self) -> Vec<TerminalInfo> {
-        let sessions = self.sessions.lock().await;
+    pub fn list(&self) -> Vec<TerminalInfo> {
+        let sessions = self.sessions.lock().unwrap();
         sessions.values().map(|s| TerminalInfo {
             id: s.id.clone(),
             shell: s.shell.clone(),

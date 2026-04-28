@@ -156,10 +156,10 @@ export default function TerminalPanel() {
   const closeTab = useCallback(async (tabId: string) => {
     const tab = tabsRef.current.find(t => t.id === tabId);
     if (tab) {
-      tab.terminal.dispose();
       try {
         await invoke('terminal_close', { terminalId: tabId });
       } catch {}
+      tab.terminal.dispose();
     }
 
     setTabs(prev => prev.filter(t => t.id !== tabId));
