@@ -306,7 +306,7 @@ export default function ChatPanel() {
           >
             В редактор
           </button>
-          {(language === 'bash' || language === 'sh' || language === 'shell' || language === 'cmd' || language === 'powershell' || language === '') && (
+          {(language === 'bash' || language === 'sh' || language === 'shell' || language === 'cmd' || language === 'powershell') && (
             <button
               onClick={() => {
                 const termWrite = (window as unknown as Record<string, unknown>).__iskin_terminal_write;
