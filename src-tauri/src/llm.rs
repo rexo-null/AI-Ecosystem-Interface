@@ -322,16 +322,14 @@ impl LLMEngine {
 
     /// Send a chat request and get the full response (non-streaming)
     pub async fn chat(&self, request: ChatRequest) -> anyhow::Result<LLMResponse> {
-        // Acquire lock, push user message, read full history, then release
+        // Snapshot history WITHOUT pushing user message yet (defer until success)
+        let user_message = request.messages.last().cloned();
         let history_snapshot = {
-            let mut history = self.conversation_history.lock().await;
-            if let Some(msg) = request.messages.last() {
-                history.push(msg.clone());
-            }
+            let history = self.conversation_history.lock().await;
             history.clone()
         };
 
-        // Build messages array with system prompt + full conversation history
+        // Build messages: system prompt + history + current user message
         let mut llama_messages = Vec::new();
 
         if let Some(ref system) = request.system_prompt {
@@ -342,6 +340,13 @@ impl LLMEngine {
         }
 
         for msg in history_snapshot.iter() {
+            llama_messages.push(LlamaCppMessage {
+                role: msg.role.clone(),
+                content: msg.content.clone(),
+            });
+        }
+
+        if let Some(ref msg) = user_message {
             llama_messages.push(LlamaCppMessage {
                 role: msg.role.clone(),
                 content: msg.content.clone(),
@@ -376,8 +381,11 @@ impl LLMEngine {
                     .map(|u| u.total_tokens)
                     .unwrap_or(0);
 
-                // Re-acquire lock to push assistant response
+                // Push both user + assistant to history atomically on success
                 let mut history = self.conversation_history.lock().await;
+                if let Some(ref msg) = user_message {
+                    history.push(msg.clone());
+                }
                 history.push(Message {
                     role: "assistant".to_string(),
                     content: content.clone(),
@@ -419,6 +427,9 @@ impl LLMEngine {
                 );
 
                 let mut history = self.conversation_history.lock().await;
+                if let Some(ref msg) = user_message {
+                    history.push(msg.clone());
+                }
                 history.push(Message {
                     role: "assistant".to_string(),
                     content: content.clone(),
@@ -443,16 +454,14 @@ impl LLMEngine {
     ) -> anyhow::Result<()> {
         self.is_generating.store(true, Ordering::SeqCst);
 
-        // Acquire lock, push user message, snapshot full history, then release
+        // Snapshot history WITHOUT pushing user message (defer until success)
+        let user_message = request.messages.last().cloned();
         let history_snapshot = {
-            let mut history = self.conversation_history.lock().await;
-            if let Some(msg) = request.messages.last() {
-                history.push(msg.clone());
-            }
+            let history = self.conversation_history.lock().await;
             history.clone()
         };
 
-        // Build messages from full conversation history
+        // Build messages: system prompt + history + current user message
         let mut llama_messages = Vec::new();
 
         if let Some(ref system) = request.system_prompt {
@@ -463,6 +472,13 @@ impl LLMEngine {
         }
 
         for msg in history_snapshot.iter() {
+            llama_messages.push(LlamaCppMessage {
+                role: msg.role.clone(),
+                content: msg.content.clone(),
+            });
+        }
+
+        if let Some(ref msg) = user_message {
             llama_messages.push(LlamaCppMessage {
                 role: msg.role.clone(),
                 content: msg.content.clone(),
@@ -548,8 +564,11 @@ impl LLMEngine {
                     }
                 }
 
-                // Save to history
+                // Push both user + assistant to history atomically on success
                 let mut history = self.conversation_history.lock().await;
+                if let Some(ref msg) = user_message {
+                    history.push(msg.clone());
+                }
                 history.push(Message {
                     role: "assistant".to_string(),
                     content: full_content.clone(),
