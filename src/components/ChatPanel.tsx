@@ -306,6 +306,28 @@ export default function ChatPanel() {
           >
             В редактор
           </button>
+          {(language === 'bash' || language === 'sh' || language === 'shell' || language === 'cmd' || language === 'powershell') && (
+            <button
+              onClick={() => {
+                const termWrite = (window as unknown as Record<string, unknown>).__iskin_terminal_write;
+                if (typeof termWrite === 'function') {
+                  (termWrite as (cmd: string) => void)(code);
+                }
+              }}
+              title="Выполнить в терминале"
+              style={{
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border)',
+                borderRadius: '3px',
+                color: 'var(--success)',
+                padding: '2px 6px',
+                cursor: 'pointer',
+                fontSize: '10px',
+              }}
+            >
+              Выполнить
+            </button>
+          )}
         </div>
       </div>
     );
