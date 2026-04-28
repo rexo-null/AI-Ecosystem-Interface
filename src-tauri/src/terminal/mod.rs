@@ -38,6 +38,7 @@ struct TerminalSession {
     cols: u16,
     rows: u16,
     writer: Box<dyn Write + Send>,
+    master: Box<dyn MasterPty + Send>,
     is_alive: Arc<AtomicBool>,
     child: Box<dyn Child + Send + Sync>,
 }
@@ -105,6 +106,9 @@ impl TerminalManager {
             .try_clone_reader()
             .context("Failed to get PTY reader")?;
 
+        // Store master for resize support
+        let master = pair.master;
+
         let is_alive = Arc::new(AtomicBool::new(true));
         let is_alive_clone = is_alive.clone();
         let tid = terminal_id.clone();
@@ -150,6 +154,7 @@ impl TerminalManager {
             cols,
             rows,
             writer,
+            master,
             is_alive,
             child,
         };
@@ -189,10 +194,13 @@ impl TerminalManager {
         session.cols = cols;
         session.rows = rows;
 
-        // Note: portable-pty resize is done via the master PTY,
-        // but we only have the writer. For resize, we store the new size
-        // and the frontend handles display resizing.
-        // Full resize support requires keeping the MasterPty reference.
+        session.master.resize(PtySize {
+            rows,
+            cols,
+            pixel_width: 0,
+            pixel_height: 0,
+        }).context("Failed to resize PTY")?;
+
         info!("Terminal {} resized to {}x{}", terminal_id, cols, rows);
         Ok(())
     }
