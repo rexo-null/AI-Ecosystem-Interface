@@ -491,6 +491,7 @@ impl LLMEngine {
                 let mut stream = resp.bytes_stream();
 
                 let mut buffer = String::new();
+                let mut stream_done = false;
 
                 while let Some(chunk_result) = stream.next().await {
                     if !self.is_generating.load(Ordering::SeqCst) {
@@ -514,7 +515,7 @@ impl LLMEngine {
 
                                 if let Some(data) = line.strip_prefix("data: ") {
                                     if data.trim() == "[DONE]" {
-                                        self.is_generating.store(false, Ordering::SeqCst);
+                                        stream_done = true;
                                         break;
                                     }
 
@@ -533,6 +534,7 @@ impl LLMEngine {
                                     }
                                 }
                             }
+                            if stream_done { break; }
                         }
                         Err(e) => {
                             error!("Stream error: {}", e);

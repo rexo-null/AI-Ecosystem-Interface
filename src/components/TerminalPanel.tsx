@@ -123,17 +123,6 @@ export default function TerminalPanel() {
       });
     });
 
-    // Create PTY session on backend
-    try {
-      await invoke('terminal_create', {
-        terminalId,
-        cols: terminal.cols,
-        rows: terminal.rows,
-      });
-    } catch (err) {
-      terminal.writeln(`\r\n\x1b[31mFailed to create terminal: ${err}\x1b[0m`);
-    }
-
     // Handle resize — notify backend
     terminal.onResize(({ cols, rows }) => {
       invoke('terminal_resize', { terminalId, cols, rows }).catch(() => {});
@@ -147,8 +136,21 @@ export default function TerminalPanel() {
       isAlive: true,
     };
 
+    // Register tab BEFORE creating PTY so event handler can find it
+    tabsRef.current = [...tabsRef.current, newTab];
     setTabs(prev => [...prev, newTab]);
     setActiveTabId(terminalId);
+
+    // Create PTY session on backend (output events can now be handled)
+    try {
+      await invoke('terminal_create', {
+        terminalId,
+        cols: terminal.cols,
+        rows: terminal.rows,
+      });
+    } catch (err) {
+      terminal.writeln(`\r\n\x1b[31mFailed to create terminal: ${err}\x1b[0m`);
+    }
   }, []);
 
   const closeTab = useCallback(async (tabId: string) => {
@@ -160,16 +162,13 @@ export default function TerminalPanel() {
       } catch {}
     }
 
-    setTabs(prev => {
-      const remaining = prev.filter(t => t.id !== tabId);
-      if (activeTabId === tabId && remaining.length > 0) {
-        setActiveTabId(remaining[remaining.length - 1].id);
-      } else if (remaining.length === 0) {
-        setActiveTabId(null);
-      }
-      return remaining;
+    setTabs(prev => prev.filter(t => t.id !== tabId));
+    setActiveTabId(prevActive => {
+      if (prevActive !== tabId) return prevActive;
+      const remaining = tabsRef.current.filter(t => t.id !== tabId);
+      return remaining.length > 0 ? remaining[remaining.length - 1].id : null;
     });
-  }, [activeTabId]);
+  }, []);
 
   // Write command to active terminal (used by ChatPanel integration)
   const writeToActiveTerminal = useCallback(async (command: string) => {
