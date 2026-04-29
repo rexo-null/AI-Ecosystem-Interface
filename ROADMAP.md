@@ -1,63 +1,53 @@
 # ISKIN CLI Roadmap
 
-> Конечная цель: автономный self-improving AI-агент уровня Devin, работающий в терминале.
+> Автономный AI-агент уровня Devin для терминала.
 
-## Phase 1: Ядро (Weeks 1-3)
+## Статус: ✅ Готово к использованию
 
-- [x] Agent State Machine (9 фаз)
-- [x] LLM Client (HTTP → llama.cpp) с SSE streaming
-- [x] Tool Registry и Executor
-- [x] CLI каркас (clap)
-- [x] Сессии (SQLite)
-- [x] Context Compressor
+### Фаза 1: Foundation — ✅
 
-## Phase 2: Песочница (Weeks 4-6)
+- [x] OpenHands SDK интеграция
+- [x] CLI интерфейс (clap)
+- [x] Python tools framework
+- [x] Базовые инструменты
 
-- [x] Docker Manager (bollard)
-- [x] Container exec / logs
-- [x] Dry-run режим
-- [x] Self-Healing Loop
+### Фаза 2: Память — ⏳
 
-## Phase 3: Память (Weeks 7-9)
+- [ ] KnowledgeBase tool
+- [ ] Semantic indexer
+- [ ] Vector store
+- [ ] Правила фильтрации
 
-- [x] Knowledge Base
-- [x] Semantic Indexer
-- [x] Vector Store
-- [x] Rules Engine
+### Фаза 3: Sandbox — ⏳
 
-## Phase 4: Secure Shell (Weeks 10-12)
+- [ ] Docker integration
+- [ ] Dry-run режим
+- [ ] Health check
 
-- [x] PTY Manager
-- [x] Shell commands
-- [x] PolicyEngine (Safe/Confirm/Dangerous)
+### Фаза 4: Self-Improvement — ⏳
 
-## Phase 5: Self-Improvement (Weeks 13-16)
+- [ ] Experience log
+- [ ] Failure analyzer
+- [ ] Self-improver
 
-- [x] Experience Log
-- [x] Failure Analyzer
-- [x] SelfImprover → обновление промптов
-- [x] Module Hot-Reload
-- [x] Dynamic tool loading
+### Фаза 5: Production — ⏳
 
-## Phase 6: CLI Polish (Weeks 17-20)
-
-- [x] Completions (bash/zsh/fish)
-- [x] Colored output
-- [x] Configuration file
-- [x] Plugins system
-- [x] CI/CD интеграция
-
-## Phase 7: Release
-
-- [x] v1.0.0
-- [x] Cross-platform binaries (Linux/macOS/Windows)
-- [x] Documentation
+- [ ] Тестирование
+- [ ] Документация
+- [ ] Релиз v1.0
 
 ---
 
-## Статус: Готово к использованию
+## Использование сейчас
 
+```bash
+$ python iskin_cli/src/iskin/cli.py "создай hello.py"
+→ Agent: Analyze → Plan → Execute → Verify
 ```
-$ iskin ask "напиши функцию hello world на Rust"
-→ Agent: ReceiveTask → Decompose → Execute → Verify → Done
-```
+
+## Следующие шаги
+
+1. Установить зависимости
+2. Подключить LLM
+3. Добавить custom tools
+4. Тестировать
