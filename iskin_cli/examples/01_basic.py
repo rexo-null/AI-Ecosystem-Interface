@@ -2,8 +2,7 @@
 
 import os
 from openhands.sdk import LLM, Agent, Conversation
-from openhands.tools.terminal import TerminalTool
-from openhands.tools.file_editor import FileEditorTool
+from openhands.tools.preset.default import get_default_tools
 
 
 def main():
@@ -16,10 +15,12 @@ def main():
         api_key="not-needed",
     )
     
-    # Create agent with tools
+    # Create agent with tools (using preset)
+    tools = get_default_tools()
+    
     agent = Agent(
         llm=llm,
-        tools=[TerminalTool, FileEditorTool],
+        tools=tools,
     )
     
     # Create conversation
