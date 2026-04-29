@@ -164,19 +164,25 @@ iskin/
 
 ---
 
-## Current Status: Phase 6 Next
+## Current Status: Phase 9 Next
 
-### Завершено (Phase 1-5):
+### Завершено (Phase 1-8):
 - Rust core: LifecycleManager (hot-reload Dylib/WASM), PolicyEngine, ResourceManager
 - React frontend: VS Code layout, 4 sidebar tabs (Files, Knowledge, Search, Sandbox)
 - Memory: KnowledgeBase + SemanticIndexer + VectorStore + RulesEngine
 - Sandbox: ContainerManager + VncManager + BrowserAutomation + SelfHealingLoop
 - LLM: HTTP-клиент к llama.cpp с SSE streaming, conversation history, model profiles
 - Terminal: xterm.js + portable-pty, мульти-таб, resize, интеграция с ChatPanel
+- Agent: Autonomous Agent с 9 фазами (ReceiveTask → QueueNext), Tool Use Protocol, Context Compressor
+- Self-Improvement: ExperienceLog, FailureAnalyzer, SelfImprover, MetaLearner, hot-reload модулей
+- Security: AuditLogger, RateLimiter, FilesystemWhitelist, SecuritySystem, sandboxed execution
 - 40+ Tauri commands, i18n (RU/EN), Zustand store
 
 ### Следующий шаг:
-1. Agent State Machine (9 фаз: ReceiveTask → ... → QueueNext)
-2. Tool Use Protocol (JSON Schema validation → PolicyEngine → execute)
-3. Context Management (автосаммаризация, sliding window)
-4. Agent UI (status bar, task panel, action log)
+1. Cross-platform builds (Linux, macOS, Windows) через Tauri bundler
+2. Auto-updater для приложения
+3. Performance profiling (Rust: flamegraph, Frontend: React DevTools)
+4. User documentation (руководство пользователя)
+5. Stable API для custom модулей (Module SDK)
+6. Qwen-VL для визуального анализа (скриншоты → описание)
+7. Alpha → Beta → v1.0 Release
