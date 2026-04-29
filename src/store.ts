@@ -110,6 +110,54 @@ interface ContainerInfo {
 }
 
 // ============================================================
+// Agent Types
+// ============================================================
+
+type AgentPhase = 
+  | 'ReceiveTask'
+  | 'Decompose'
+  | 'ImpactAssessment'
+  | 'DryRun'
+  | 'Execute'
+  | 'Verify'
+  | 'ArtifactSync'
+  | 'Commit'
+  | 'QueueNext';
+
+interface ImpactReport {
+  affected_files: string[];
+  doc_sync_needed: boolean;
+  tests_to_run: string[];
+  rollback_plan: RollbackPlan;
+  risk_level: RiskLevel;
+}
+
+interface RollbackPlan {
+  steps: string[];
+  estimated_time: number;
+}
+
+type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
+
+interface AgentAction {
+  id: string;
+  phase: AgentPhase;
+  description: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  timestamp: number;
+  duration_ms?: number;
+  error?: string;
+}
+
+interface AgentTask {
+  id: string;
+  description: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  subtasks: string[];
+  created_at: number;
+}
+
+// ============================================================
 // Tauri invoke wrapper (falls back to mock for browser dev)
 // ============================================================
 
@@ -137,6 +185,20 @@ interface EditorStore {
   setActiveFile: (file: FileContent) => void;
   openFile: (file: FileContent) => void;
   closeTab: (path: string) => void;
+
+  // Agent State
+  agentPhase: AgentPhase;
+  agentActive: boolean;
+  agentTasks: AgentTask[];
+  currentTaskId: string | null;
+  agentActions: AgentAction[];
+  impactReport: ImpactReport | null;
+  setAgentPhase: (phase: AgentPhase) => void;
+  setAgentActive: (active: boolean) => void;
+  addAgentTask: (task: Omit<AgentTask, 'id' | 'created_at'>) => void;
+  updateTaskStatus: (taskId: string, status: AgentTask['status']) => void;
+  addAgentAction: (action: Omit<AgentAction, 'id' | 'timestamp'>) => void;
+  setImpactReport: (report: ImpactReport | null) => void;
 
   // Knowledge Base
   memoryEntries: MemoryEntry[];
@@ -198,6 +260,52 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   // Files
   activeFile: null,
   openTabs: [],
+  
+  // Agent State
+  agentPhase: 'ReceiveTask',
+  agentActive: false,
+  agentTasks: [],
+  currentTaskId: null,
+  agentActions: [],
+  impactReport: null,
+  
+  setAgentPhase: (phase) => set({ agentPhase: phase }),
+  setAgentActive: (active) => set({ agentActive: active }),
+  
+  addAgentTask: (task) => {
+    const newTask: AgentTask = {
+      ...task,
+      id: crypto.randomUUID(),
+      created_at: Date.now(),
+    };
+    set((state) => ({ 
+      agentTasks: [...state.agentTasks, newTask],
+      currentTaskId: newTask.id,
+    }));
+  },
+  
+  updateTaskStatus: (taskId, status) => {
+    set((state) => ({
+      agentTasks: state.agentTasks.map(t => 
+        t.id === taskId ? { ...t, status } : t
+      ),
+    }));
+  },
+  
+  addAgentAction: (action) => {
+    const newAction: AgentAction = {
+      ...action,
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+    };
+    set((state) => ({ 
+      agentActions: [...state.agentActions, newAction],
+    }));
+  },
+  
+  setImpactReport: (report) => set({ impactReport: report }),
+  
+  // Memory
   memoryEntries: [],
   allMemoryEntries: [],
   knowledgeLoading: false,

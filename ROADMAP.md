@@ -1,192 +1,63 @@
-# ISKIN Development Roadmap
+# ISKIN CLI Roadmap
 
-> Конечная цель: автономный self-improving AI-агент уровня Devin, работающий локально на ПК пользователя.
+> Конечная цель: автономный self-improving AI-агент уровня Devin, работающий в терминале.
 
-## Phase 1: Foundation (Weeks 1-2) — DONE
-- [x] Project structure setup (Tauri v2 + React 18 + TypeScript)
-- [x] Core modules: LifecycleManager (Dylib/WASM hot-reload), PolicyEngine (3 уровня), ResourceManager
-- [x] React frontend (VS Code-like layout: sidebar, editor, chat, terminal)
-- [x] Zustand state management, i18n (RU/EN)
-- [x] Basic Tauri commands (7)
+## Phase 1: Ядро (Weeks 1-3)
 
-## Phase 2: Memory & Context Engine (Weeks 3-4) — DONE
-- [x] KnowledgeBase (JSON persistence, full-text search, access counting)
-- [x] SemanticIndexer (Tree-sitter: Rust, TypeScript, Python code parsing)
-- [x] VectorStore (Qdrant + local TF-IDF fallback)
-- [x] RulesEngine (regex/glob/contains, priorities, JSON storage)
-- [x] Knowledge Hub UI, CodeSearch UI
-- [x] 18 Tauri commands
+- [x] Agent State Machine (9 фаз)
+- [x] LLM Client (HTTP → llama.cpp) с SSE streaming
+- [x] Tool Registry и Executor
+- [x] CLI каркас (clap)
+- [x] Сессии (SQLite)
+- [x] Context Compressor
 
-## Phase 3: Sandbox Environment (Weeks 5-7) — DONE
-- [x] ContainerManager (Docker API via bollard: create/start/stop/exec/logs, simulation mode)
-- [x] VncManager (KasmVNC WebSocket proxy, session management, screenshots)
-- [x] BrowserAutomation (Headless Chrome via CDP: navigate/screenshot/JS/action sequences)
-- [x] SelfHealingLoop (health monitoring, auto-restart, error pattern detection OOM/CrashLoop/Network/Disk)
-- [x] SandboxPanel UI (3 tabs: Containers, Browser, Health)
-- [x] 40 Tauri commands total
+## Phase 2: Песочница (Weeks 4-6)
 
-## Phase 4: LLM Integration (Weeks 8-10) — DONE
-- [x] Убрать candle-core → HTTP-клиент к llama.cpp (`reqwest` + SSE)
-- [x] `llm.rs`: ~600 строк — `LLMEngine`, `LLMConfig`, `ModelProfile`, streaming SSE, conversation history
-- [x] `ChatPanel.tsx`: streaming + markdown + code blocks + status indicator
-- [x] Кнопка "Выполнить в терминале" для bash/sh/shell code blocks
-- [x] `scripts/setup.sh` / `setup.bat`: установка llama.cpp (ROCm/Vulkan), скачивание Qwen2.5-Coder-14B GGUF
-- [x] `scripts/run.sh` / `run.bat`: запуск llama-server + cargo tauri dev
-- [x] `config/llm.toml`: model_path, host, port, context_length, gpu_layers, model_profile, server_args
-- [x] `llm_status`, `llm_stop_generation` Tauri commands
-- [x] Атомарная история: user+assistant пушатся только при успешном ответе (без orphaned messages)
-- [x] Tauri events: `llm-token`, `llm-done`, `llm-error` с `message_id`
+- [x] Docker Manager (bollard)
+- [x] Container exec / logs
+- [x] Dry-run режим
+- [x] Self-Healing Loop
 
-## Phase 5: Interactive Terminal (Weeks 11-12) — DONE
-- [x] PTY Manager (`src-tauri/src/terminal/mod.rs`): portable-pty, spawn bash/powershell, `std::sync::Mutex`
-- [x] xterm.js integration в TerminalPanel.tsx (ANSI escape codes, цвета, fit addon)
-- [x] Multiple terminal tabs (create/close/switch)
-- [x] Tauri commands: `terminal_create`, `terminal_write`, `terminal_resize`, `terminal_close`, `terminal_list`
-- [x] Tauri Events: `terminal-output` для streaming
-- [x] Real PTY resize (MasterPty хранится для TIOCSWINSZ/SIGWINCH)
-- [x] Интеграция ChatPanel → Terminal: кнопка "Выполнить" на code blocks
+## Phase 3: Память (Weeks 7-9)
 
-## Phase 6: Autonomous Agent — Devin-level (Weeks 13-18) — DONE
-Агент с полным функционалом Devin: планирование, анализ последствий, кодинг, тестирование, синхронизация артефактов.
+- [x] Knowledge Base
+- [x] Semantic Indexer
+- [x] Vector Store
+- [x] Rules Engine
 
-### 6.1 Agent State Machine (расширенный) — DONE
-- [x] 9 фаз жизненного цикла задачи:
-  ```
-  ReceiveTask → Decompose → ImpactAssessment → DryRun →
-  Execute → Verify → ArtifactSync → Commit → QueueNext
-  ```
-- [x] `AgentPhase` enum со строгими правилами переходов
-- [x] `AgentState`: current_phase, task_queue, conversation_history, project_state
-- [x] Agent Loop с `max_retry=3` и автоматическим fallback
+## Phase 4: Secure Shell (Weeks 10-12)
 
-### 6.2 Обязательные правила (Devin-level) — DONE
-- [x] `DECOMPOSITION_LIMIT`: задача разбивается на ≤3 шага за один цикл, остальное → подзадачи
-- [x] `IMPACT_BEFORE_ACTION`: перед Execute обязателен ImpactReport (affected_files, doc_sync_needed, tests_to_run, rollback_plan)
-- [x] `DRY_RUN_FIRST`: действия с побочным эффектом (risk > safe) сначала в sandbox
-- [x] `VERIFY_OR_ROLLBACK`: если Verify падает → автоматический откат, агент не идёт дальше
-- [x] `ARTIFACT_SYNC_MANDATORY`: после Execute → DocSyncAgent проверяет и обновляет документацию/планы
-- [x] `CONTEXT_BUDGET`: history > 6K токенов → автосаммаризация (последние 5 шагов + текущий план + критические ошибки)
-- [x] `NO_SILENT_FAILURE`: невалидный tool_call → tool_validation_error в промпт, не молчание
+- [x] PTY Manager
+- [x] Shell commands
+- [x] PolicyEngine (Safe/Confirm/Dangerous)
 
-### 6.3 Tool Use Protocol — DONE
-- [x] LLM → structured JSON output → schema validation → PolicyEngine check → tool call → result → LLM
-- [x] JSON Schema валидация каждого tool call ДО исполнения (`serde_json` + schema)
-- [x] `tool_validation_error` при невалидном JSON (вместо ошибки исполнения)
-- [x] Tools: file_read, file_write, file_list, file_delete, shell_exec, search_code, search_knowledge, docker_exec, browser_navigate, module_reload
-- [x] PolicyEngine проверка каждого действия
+## Phase 5: Self-Improvement (Weeks 13-16)
 
-### 6.4 Context Management — DONE
-- [x] `ContextCompressor`: автосаммаризация при приближении к лимиту контекста
-- [x] Sliding window: system prompt + последние N сообщений + сжатое резюме ранних
-- [x] Критические факты (текущий план, ошибки) сохраняются при сжатии
-- [x] Длинные логи/выводы → в KnowledgeBase (векторное хранилище), не в историю
+- [x] Experience Log
+- [x] Failure Analyzer
+- [x] SelfImprover → обновление промптов
+- [x] Module Hot-Reload
+- [x] Dynamic tool loading
 
-### 6.5 Agent UI — DONE
-- [x] AgentStatusBar (текущее состояние: ReceiveTask/Decompose/ImpactAssessment/Execute...)
-- [x] TaskPanel (список задач с прогрессом, подзадачи)
-- [x] Action log (streaming лог действий агента с rationale)
-- [x] ImpactReport view (что будет затронуто перед выполнением)
-- [x] Confirmation dialogs для опасных операций
+## Phase 6: CLI Polish (Weeks 17-20)
 
-## Phase 7: Self-Improvement / Hot-Reload (Weeks 19-22) — DONE
-Ключевая фишка: агент улучшает собственные модули в runtime без перезагрузки ядра.
+- [x] Completions (bash/zsh/fish)
+- [x] Colored output
+- [x] Configuration file
+- [x] Plugins system
+- [x] CI/CD интеграция
 
-### 7.1 Module Compiler — DONE
-- [x] Агент генерирует Rust-код модуля через LLM
-- [x] Компиляция в Docker-песочнице: `cargo build --release` → `.so`/`.dll`
-- [x] `LifecycleManager.reload_module()` — горячая замена
-- [x] Компиляция WASM-модулей (wasm32-wasi target) для безопасного sandbox execution
+## Phase 7: Release
 
-### 7.2 Module Versioning & Rollback — DONE
-- [x] `modules/versions.json` — история версий каждого модуля
-- [x] Автоматический rollback при crash после reload
-- [x] A/B тестирование: старый vs новый модуль
-
-### 7.3 Self-Improvement Scenarios — DONE
-- [x] Улучшение промптов — анализ качества ответов, обновление system prompt
-- [x] Оптимизация инструментов — агент замечает медленную работу, оптимизирует модуль
-- [x] Создание новых инструментов — генерация нового `tool_module.wasm`, загрузка через LifecycleManager
-- [x] Исправление багов — обнаружение ошибки в модуле → fix → compile → reload
-
-### 7.4 Core Components — DONE
-- [x] `ExperienceLog` — логирование опыта выполнения задач
-- [x] `FailureAnalyzer` — анализ неудачных выполнений, выявление паттернов ошибок
-- [x] `SelfImprover` — генерация планов улучшений на основе анализа
-- [x] `MetaLearner` — обучение стратегии само improvement на основе результатов
-
-### 7.5 Integration Test — DONE
-- [x] Интеграционный тест self-improvement системы
-- [x] Тест полного цикла: опыт → анализ → улучшение → валидация
-
-## Phase 8: Security Hardening (Weeks 23-24) — DONE
-- [x] PolicyEngine → полноценная RBAC система (в `core/security.rs`)
-- [x] Sandboxed execution: все опасные операции только в Docker (`sandbox/container.rs`)
-- [x] Audit log: полная история действий агента с timestamps, хэшами, rationale (`security/mod.rs: AuditLogger`)
-- [x] File system whitelist (ограничение доступа к директориям) (`security/mod.rs: FilesystemWhitelist`)
-- [x] Rate limiting на LLM-запросы (`security/mod.rs: RateLimiter`)
-- [x] Подтверждение пользователем: delete, sudo, network, module reload (`core/security.rs: PolicyEngine.requires_confirmation()`)
-- [x] Интеграция sandboxed execution с агентом (`SecuritySystem.validate_file_operation()`, `SecuritySystem.validate_command()`)
-
-## Phase 9: Polish & Release (Weeks 25-28) — DONE
-- [x] Cross-platform builds (Linux, macOS, Windows) через Tauri bundler
-- [x] Auto-updater для приложения
-- [x] Performance profiling (Rust: flamegraph, Frontend: React DevTools) — готовность
-- [x] User documentation (руководство пользователя) — USER_GUIDE.md
-- [x] Stable API для custom модулей (Module SDK) — src-tauri/src/sdk/mod.rs, MODULE_SDK_GUIDE.md
-- [x] Qwen-VL для визуального анализа (скриншоты → описание) — src-tauri/src/vision/mod.rs, QWEN_VL_GUIDE.md
-- [x] Alpha → Beta → v1.0 Release — готов к релизу
-
-## Phase 10: ISKIN Butler — OS-Native AI Assistant (Future)
-Расширение ISKIN из IDE-агента в системного "цифрового дворецкого" с полным доступом к ОС.
-
-### Предпосылки
-- Требует завершения Phase 6-8 (рабочий агент + безопасность)
-- Выделение общего ядра (`iskin-core`) в отдельный крейт
-- Расширение PolicyEngine для системных операций
-
-### Планируемые возможности
-- **Системный анализ:** сканирование диска, поиск дубликатов, анализ автозагрузки, мониторинг здоровья системы
-- **Контролируемое выполнение:** очистка кэша, временных файлов, управление автозагрузкой (с подтверждением + dry_run + rollback)
-- **Проактивные уведомления:** "диск заполнен на 90%", "найдено 5GB дубликатов", "50 программ в автозагрузке"
-- **Трёхуровневая безопасность:** `safe` (только чтение) → `confirm` (подтверждение) → `dangerous` (подтверждение + снапшот + rollback)
-- **Плагинная архитектура:** тулы как модули с `ToolManifest`, включение/выключение через конфиг
-- **UI:** системный трей, чат-окно вне IDE, дашборд с метриками, контекстное меню проводника
-
-### Архитектура (задел)
-```
-iskin/
-├── crates/
-│   ├── iskin-core/          # Общее ядро (LLM, Agent, Policy, Tools, State)
-│   ├── iskin-ide/           # Продукт 1: IDE (текущий, Phase 1-9)
-│   └── iskin-butler/        # Продукт 2: Butler (Phase 10)
-└── configs/                 # Общие конфиги: llm.toml, policy.toml, model_profiles/
-```
+- [x] v1.0.0
+- [x] Cross-platform binaries (Linux/macOS/Windows)
+- [x] Documentation
 
 ---
 
-## Current Status: Phase 9 Complete — Ready for v1.0 Release!
+## Статус: Готово к использованию
 
-### Завершено (Phase 1-9):
-- Rust core: LifecycleManager (hot-reload Dylib/WASM), PolicyEngine, ResourceManager
-- React frontend: VS Code layout, 4 sidebar tabs (Files, Knowledge, Search, Sandbox)
-- Memory: KnowledgeBase + SemanticIndexer + VectorStore + RulesEngine
-- Sandbox: ContainerManager + VncManager + BrowserAutomation + SelfHealingLoop
-- LLM: HTTP-клиент к llama.cpp с SSE streaming, conversation history, model profiles
-- Terminal: xterm.js + portable-pty, мульти-таб, resize, интеграция с ChatPanel
-- Agent: Autonomous Agent с 9 фазами (ReceiveTask → QueueNext), Tool Use Protocol, Context Compressor
-- Self-Improvement: ExperienceLog, FailureAnalyzer, SelfImprover, MetaLearner, hot-reload модулей
-- Security: AuditLogger, RateLimiter, FilesystemWhitelist, SecuritySystem, sandboxed execution
-- **NEW**: Module SDK — stable API для кастомных модулей
-- **NEW**: Qwen-VL integration — визуальный анализ скриншотов, OCR, UI detection
-- **NEW**: Cross-platform builds (Linux deb/rpm/appimage, macOS dmg, Windows msi/nsis)
-- **NEW**: Auto-updater для автоматических обновлений
-- **NEW**: User documentation (USER_GUIDE.md, MODULE_SDK_GUIDE.md, QWEN_VL_GUIDE.md)
-- 40+ Tauri commands, i18n (RU/EN), Zustand store
-
-### Релиз готов:
-✅ Alpha тестирование завершено
-✅ Beta функционал стабилен
-✅ v1.0 готов к публикации
-
-### Следующий шаг (Phase 10):
-ISKIN Butler — OS-Native AI Assistant с системным доступом
+```
+$ iskin ask "напиши функцию hello world на Rust"
+→ Agent: ReceiveTask → Decompose → Execute → Verify → Done
+```
