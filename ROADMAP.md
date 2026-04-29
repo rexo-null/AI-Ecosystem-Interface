@@ -88,33 +88,44 @@
 - [ ] ImpactReport view (что будет затронуто перед выполнением)
 - [ ] Confirmation dialogs для опасных операций
 
-## Phase 7: Self-Improvement / Hot-Reload (Weeks 19-22)
+## Phase 7: Self-Improvement / Hot-Reload (Weeks 19-22) — DONE
 Ключевая фишка: агент улучшает собственные модули в runtime без перезагрузки ядра.
 
-### 7.1 Module Compiler
-- [ ] Агент генерирует Rust-код модуля через LLM
-- [ ] Компиляция в Docker-песочнице: `cargo build --release` → `.so`/`.dll`
-- [ ] `LifecycleManager.reload_module()` — горячая замена
-- [ ] Компиляция WASM-модулей (wasm32-wasi target) для безопасного sandbox execution
+### 7.1 Module Compiler — DONE
+- [x] Агент генерирует Rust-код модуля через LLM
+- [x] Компиляция в Docker-песочнице: `cargo build --release` → `.so`/`.dll`
+- [x] `LifecycleManager.reload_module()` — горячая замена
+- [x] Компиляция WASM-модулей (wasm32-wasi target) для безопасного sandbox execution
 
-### 7.2 Module Versioning & Rollback
-- [ ] `modules/versions.json` — история версий каждого модуля
-- [ ] Автоматический rollback при crash после reload
-- [ ] A/B тестирование: старый vs новый модуль
+### 7.2 Module Versioning & Rollback — DONE
+- [x] `modules/versions.json` — история версий каждого модуля
+- [x] Автоматический rollback при crash после reload
+- [x] A/B тестирование: старый vs новый модуль
 
-### 7.3 Self-Improvement Scenarios
-- [ ] Улучшение промптов — анализ качества ответов, обновление system prompt
-- [ ] Оптимизация инструментов — агент замечает медленную работу, оптимизирует модуль
-- [ ] Создание новых инструментов — генерация нового `tool_module.wasm`, загрузка через LifecycleManager
-- [ ] Исправление багов — обнаружение ошибки в модуле → fix → compile → reload
+### 7.3 Self-Improvement Scenarios — DONE
+- [x] Улучшение промптов — анализ качества ответов, обновление system prompt
+- [x] Оптимизация инструментов — агент замечает медленную работу, оптимизирует модуль
+- [x] Создание новых инструментов — генерация нового `tool_module.wasm`, загрузка через LifecycleManager
+- [x] Исправление багов — обнаружение ошибки в модуле → fix → compile → reload
 
-## Phase 8: Security Hardening (Weeks 23-24)
-- [ ] PolicyEngine → полноценная RBAC система
-- [ ] Sandboxed execution: все опасные операции только в Docker
-- [ ] Audit log: полная история действий агента с timestamps, хэшами, rationale
-- [ ] File system whitelist (ограничение доступа к директориям)
-- [ ] Rate limiting на LLM-запросы
-- [ ] Подтверждение пользователем: delete, sudo, network, module reload
+### 7.4 Core Components — DONE
+- [x] `ExperienceLog` — логирование опыта выполнения задач
+- [x] `FailureAnalyzer` — анализ неудачных выполнений, выявление паттернов ошибок
+- [x] `SelfImprover` — генерация планов улучшений на основе анализа
+- [x] `MetaLearner` — обучение стратегии само improvement на основе результатов
+
+### 7.5 Integration Test — DONE
+- [x] Интеграционный тест self-improvement системы
+- [x] Тест полного цикла: опыт → анализ → улучшение → валидация
+
+## Phase 8: Security Hardening (Weeks 23-24) — DONE
+- [x] PolicyEngine → полноценная RBAC система (в `core/security.rs`)
+- [x] Sandboxed execution: все опасные операции только в Docker (`sandbox/container.rs`)
+- [x] Audit log: полная история действий агента с timestamps, хэшами, rationale (`security/mod.rs: AuditLogger`)
+- [x] File system whitelist (ограничение доступа к директориям) (`security/mod.rs: FilesystemWhitelist`)
+- [x] Rate limiting на LLM-запросы (`security/mod.rs: RateLimiter`)
+- [x] Подтверждение пользователем: delete, sudo, network, module reload (`core/security.rs: PolicyEngine.requires_confirmation()`)
+- [x] Интеграция sandboxed execution с агентом (`SecuritySystem.validate_file_operation()`, `SecuritySystem.validate_command()`)
 
 ## Phase 9: Polish & Release (Weeks 25-28)
 - [ ] Cross-platform builds (Linux, macOS, Windows) через Tauri bundler
