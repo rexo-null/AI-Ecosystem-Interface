@@ -127,10 +127,10 @@
 - [x] Подтверждение пользователем: delete, sudo, network, module reload (`core/security.rs: PolicyEngine.requires_confirmation()`)
 - [x] Интеграция sandboxed execution с агентом (`SecuritySystem.validate_file_operation()`, `SecuritySystem.validate_command()`)
 
-## Phase 9: Polish & Release (Weeks 25-28)
-- [ ] Cross-platform builds (Linux, macOS, Windows) через Tauri bundler
-- [ ] Auto-updater для приложения
-- [ ] Performance profiling (Rust: flamegraph, Frontend: React DevTools)
+## Phase 9: Polish & Release (Weeks 25-28) — IN PROGRESS
+- [x] Cross-platform builds (Linux, macOS, Windows) через Tauri bundler
+- [x] Auto-updater для приложения
+- [x] Performance profiling (Rust: flamegraph, Frontend: React DevTools) — готовность
 - [ ] User documentation (руководство пользователя)
 - [ ] Stable API для custom модулей (Module SDK)
 - [ ] Qwen-VL для визуального анализа (скриншоты → описание)
