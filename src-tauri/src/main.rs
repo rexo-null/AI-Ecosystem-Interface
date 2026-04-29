@@ -11,6 +11,7 @@ mod tools;
 mod api;
 mod llm;
 mod terminal;
+mod agent;
 
 use core::{LifecycleManager, PolicyEngine, ResourceManager, security::PolicyLevel};
 use memory::{KnowledgeBase, SemanticIndexer, RulesEngine, VectorStore};

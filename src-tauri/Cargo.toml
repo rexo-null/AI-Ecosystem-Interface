@@ -25,6 +25,8 @@ wasmtime-wasi = "19.0"  # WASI support for WASM
 uuid = { version = "1.0", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 async-trait = "0.1"  # For async trait definitions
+md5 = "0.7"  # For hashing
+tempfile = "3.0"  # For temporary directories in tests
 
 # LLM Integration (HTTP client to llama.cpp)
 toml_edit = "0.22"  # Config parsing
