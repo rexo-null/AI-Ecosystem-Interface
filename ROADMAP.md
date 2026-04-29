@@ -46,47 +46,47 @@
 - [x] Real PTY resize (MasterPty хранится для TIOCSWINSZ/SIGWINCH)
 - [x] Интеграция ChatPanel → Terminal: кнопка "Выполнить" на code blocks
 
-## Phase 6: Autonomous Agent — Devin-level (Weeks 13-18)
+## Phase 6: Autonomous Agent — Devin-level (Weeks 13-18) — DONE
 Агент с полным функционалом Devin: планирование, анализ последствий, кодинг, тестирование, синхронизация артефактов.
 
-### 6.1 Agent State Machine (расширенный)
-- [ ] 9 фаз жизненного цикла задачи:
+### 6.1 Agent State Machine (расширенный) — DONE
+- [x] 9 фаз жизненного цикла задачи:
   ```
   ReceiveTask → Decompose → ImpactAssessment → DryRun →
   Execute → Verify → ArtifactSync → Commit → QueueNext
   ```
-- [ ] `AgentPhase` enum со строгими правилами переходов
-- [ ] `AgentState`: current_phase, task_queue, conversation_history, project_state
-- [ ] Agent Loop с `max_retry=3` и автоматическим fallback
+- [x] `AgentPhase` enum со строгими правилами переходов
+- [x] `AgentState`: current_phase, task_queue, conversation_history, project_state
+- [x] Agent Loop с `max_retry=3` и автоматическим fallback
 
-### 6.2 Обязательные правила (Devin-level)
-- [ ] `DECOMPOSITION_LIMIT`: задача разбивается на ≤3 шага за один цикл, остальное → подзадачи
-- [ ] `IMPACT_BEFORE_ACTION`: перед Execute обязателен ImpactReport (affected_files, doc_sync_needed, tests_to_run, rollback_plan)
-- [ ] `DRY_RUN_FIRST`: действия с побочным эффектом (risk > safe) сначала в sandbox
-- [ ] `VERIFY_OR_ROLLBACK`: если Verify падает → автоматический откат, агент не идёт дальше
-- [ ] `ARTIFACT_SYNC_MANDATORY`: после Execute → DocSyncAgent проверяет и обновляет документацию/планы
-- [ ] `CONTEXT_BUDGET`: history > 6K токенов → автосаммаризация (последние 5 шагов + текущий план + критические ошибки)
-- [ ] `NO_SILENT_FAILURE`: невалидный tool_call → tool_validation_error в промпт, не молчание
+### 6.2 Обязательные правила (Devin-level) — DONE
+- [x] `DECOMPOSITION_LIMIT`: задача разбивается на ≤3 шага за один цикл, остальное → подзадачи
+- [x] `IMPACT_BEFORE_ACTION`: перед Execute обязателен ImpactReport (affected_files, doc_sync_needed, tests_to_run, rollback_plan)
+- [x] `DRY_RUN_FIRST`: действия с побочным эффектом (risk > safe) сначала в sandbox
+- [x] `VERIFY_OR_ROLLBACK`: если Verify падает → автоматический откат, агент не идёт дальше
+- [x] `ARTIFACT_SYNC_MANDATORY`: после Execute → DocSyncAgent проверяет и обновляет документацию/планы
+- [x] `CONTEXT_BUDGET`: history > 6K токенов → автосаммаризация (последние 5 шагов + текущий план + критические ошибки)
+- [x] `NO_SILENT_FAILURE`: невалидный tool_call → tool_validation_error в промпт, не молчание
 
-### 6.3 Tool Use Protocol
-- [ ] LLM → structured JSON output → schema validation → PolicyEngine check → tool call → result → LLM
-- [ ] JSON Schema валидация каждого tool call ДО исполнения (`serde_json` + schema)
-- [ ] `tool_validation_error` при невалидном JSON (вместо ошибки исполнения)
-- [ ] Tools: file_read, file_write, file_list, file_delete, shell_exec, search_code, search_knowledge, docker_exec, browser_navigate, module_reload
-- [ ] PolicyEngine проверка каждого действия
+### 6.3 Tool Use Protocol — DONE
+- [x] LLM → structured JSON output → schema validation → PolicyEngine check → tool call → result → LLM
+- [x] JSON Schema валидация каждого tool call ДО исполнения (`serde_json` + schema)
+- [x] `tool_validation_error` при невалидном JSON (вместо ошибки исполнения)
+- [x] Tools: file_read, file_write, file_list, file_delete, shell_exec, search_code, search_knowledge, docker_exec, browser_navigate, module_reload
+- [x] PolicyEngine проверка каждого действия
 
-### 6.4 Context Management
-- [ ] `ContextCompressor`: автосаммаризация при приближении к лимиту контекста
-- [ ] Sliding window: system prompt + последние N сообщений + сжатое резюме ранних
-- [ ] Критические факты (текущий план, ошибки) сохраняются при сжатии
-- [ ] Длинные логи/выводы → в KnowledgeBase (векторное хранилище), не в историю
+### 6.4 Context Management — DONE
+- [x] `ContextCompressor`: автосаммаризация при приближении к лимиту контекста
+- [x] Sliding window: system prompt + последние N сообщений + сжатое резюме ранних
+- [x] Критические факты (текущий план, ошибки) сохраняются при сжатии
+- [x] Длинные логи/выводы → в KnowledgeBase (векторное хранилище), не в историю
 
-### 6.5 Agent UI
-- [ ] AgentStatusBar (текущее состояние: ReceiveTask/Decompose/ImpactAssessment/Execute...)
-- [ ] TaskPanel (список задач с прогрессом, подзадачи)
-- [ ] Action log (streaming лог действий агента с rationale)
-- [ ] ImpactReport view (что будет затронуто перед выполнением)
-- [ ] Confirmation dialogs для опасных операций
+### 6.5 Agent UI — DONE
+- [x] AgentStatusBar (текущее состояние: ReceiveTask/Decompose/ImpactAssessment/Execute...)
+- [x] TaskPanel (список задач с прогрессом, подзадачи)
+- [x] Action log (streaming лог действий агента с rationale)
+- [x] ImpactReport view (что будет затронуто перед выполнением)
+- [x] Confirmation dialogs для опасных операций
 
 ## Phase 7: Self-Improvement / Hot-Reload (Weeks 19-22) — DONE
 Ключевая фишка: агент улучшает собственные модули в runtime без перезагрузки ядра.
