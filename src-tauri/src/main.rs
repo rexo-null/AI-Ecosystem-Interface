@@ -12,6 +12,7 @@ mod api;
 mod llm;
 mod terminal;
 mod agent;
+mod updater;
 
 use core::{LifecycleManager, PolicyEngine, ResourceManager, security::PolicyLevel};
 use memory::{KnowledgeBase, SemanticIndexer, RulesEngine, VectorStore};
@@ -126,6 +127,7 @@ async fn main() -> anyhow::Result<()> {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(lifecycle_manager)
         .manage(policy_engine)
         .manage(resource_manager)
@@ -204,6 +206,10 @@ async fn main() -> anyhow::Result<()> {
             api::commands::terminal_resize,
             api::commands::terminal_close,
             api::commands::terminal_list,
+            // Updater
+            api::commands::check_for_updates,
+            api::commands::install_update,
+            api::commands::get_update_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running ISKIN");

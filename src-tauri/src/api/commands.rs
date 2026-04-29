@@ -896,3 +896,51 @@ pub fn terminal_list(
 ) -> Result<Vec<TerminalInfo>, String> {
     Ok(manager.list())
 }
+
+// ============================================================
+// Updater Commands (Phase 9: Auto-updater)
+// ============================================================
+
+#[derive(Debug, Serialize)]
+pub struct UpdateStatus {
+    pub available: bool,
+    pub current_version: String,
+    pub latest_version: Option<String>,
+    pub download_url: Option<String>,
+    pub release_notes: Option<String>,
+    pub downloading: bool,
+    pub download_progress: Option<f32>,
+    pub installing: bool,
+    pub installed: bool,
+    pub error: Option<String>,
+}
+
+#[tauri::command]
+pub async fn check_for_updates() -> Result<UpdateStatus, String> {
+    // In production, this would check GitHub Releases or a custom update server
+    // For now, return a mock response
+    Ok(UpdateStatus {
+        available: false,
+        current_version: env!("CARGO_PKG_VERSION").to_string(),
+        latest_version: None,
+        download_url: None,
+        release_notes: None,
+        downloading: false,
+        download_progress: None,
+        installing: false,
+        installed: false,
+        error: None,
+    })
+}
+
+#[tauri::command]
+pub async fn install_update() -> Result<String, String> {
+    // In production, this would download and install the update
+    // using tauri-plugin-updater
+    Err("No update available".to_string())
+}
+
+#[tauri::command]
+pub async fn get_update_status() -> Result<UpdateStatus, String> {
+    check_for_updates().await
+}
