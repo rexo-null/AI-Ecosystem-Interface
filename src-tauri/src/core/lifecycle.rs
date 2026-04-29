@@ -5,10 +5,11 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use log::{info, warn, error};
+use log::{info, error};
 use wasmtime::{Engine, Module, Store, Instance, Linker};
 
 /// Represents a dynamically loaded module
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct DynamicModule {
     pub id: String,
@@ -21,12 +22,14 @@ pub struct DynamicModule {
     pub module_type: ModuleType,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum ModuleType {
     Dylib,
     Wasm,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct WasmModule {
     pub module: Module,
@@ -52,6 +55,7 @@ pub struct LifecycleManager {
     wasm_engine: Engine,
 }
 
+#[allow(dead_code)]
 impl LifecycleManager {
     pub fn new(modules_dir: PathBuf) -> Self {
         let wasm_engine = Engine::default();
@@ -106,7 +110,7 @@ impl LifecycleManager {
             .context("Failed to load WASM module")?;
 
         let mut store = Store::new(&self.wasm_engine, ());
-        let mut linker = Linker::new(&self.wasm_engine);
+        let linker = Linker::new(&self.wasm_engine);
 
         // For now, skip WASI setup - it requires proper Component API integration
         // This is simplified WASM support without full WASI
@@ -220,7 +224,7 @@ impl LifecycleManager {
     }
 
     /// Execute a function from a loaded module
-    pub async fn execute_module_function(&self, module_id: &str, function_name: &str, args: &[u8]) -> Result<Vec<u8>> {
+    pub async fn execute_module_function(&self, module_id: &str, function_name: &str, _args: &[u8]) -> Result<Vec<u8>> {
         let modules = self.modules.read().await;
         let module = modules.get(module_id)
             .context("Module not found")?;
@@ -231,7 +235,7 @@ impl LifecycleManager {
 
         match &module.module_type {
             ModuleType::Dylib => {
-                if let Some(lib) = &module.library {
+                if let Some(_lib) = &module.library {
                     // For Dylib, we'd need to get function pointers
                     // This is a simplified example
                     anyhow::bail!("Dylib function execution not implemented");

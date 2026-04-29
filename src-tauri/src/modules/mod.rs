@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 // ISKIN Modules - Dynamic Module Definitions for Self-Improvement
 
 pub mod tool_module;

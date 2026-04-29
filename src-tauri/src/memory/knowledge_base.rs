@@ -1,10 +1,12 @@
+#![allow(dead_code)]
+
 use anyhow::{Result, Context};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use log::{info, warn};
+use log::info;
 
 /// Memory entry types in the hierarchical knowledge base
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]

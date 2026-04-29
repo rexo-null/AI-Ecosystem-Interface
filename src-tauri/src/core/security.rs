@@ -1,4 +1,4 @@
-use anyhow::{Result, Context};
+use anyhow::Result;
 use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -6,6 +6,7 @@ use log::{info, warn};
 
 /// Action types that require user confirmation
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[allow(dead_code)]
 pub enum DangerousAction {
     FileDelete(String),
     FileOverwrite(String),
@@ -16,6 +17,7 @@ pub enum DangerousAction {
 }
 
 /// Security policy level
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PolicyLevel {
     Strict,    // Always confirm dangerous actions
@@ -24,12 +26,14 @@ pub enum PolicyLevel {
 }
 
 /// Policy Engine - controls what the agent can do autonomously
+#[allow(dead_code)]
 pub struct PolicyEngine {
     level: Arc<RwLock<PolicyLevel>>,
     blocked_actions: Arc<RwLock<HashSet<DangerousAction>>>,
     allowed_patterns: Arc<RwLock<HashSet<String>>>,
 }
 
+#[allow(dead_code)]
 impl PolicyEngine {
     pub fn new(default_level: PolicyLevel) -> Self {
         Self {

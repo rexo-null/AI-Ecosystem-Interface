@@ -1,11 +1,12 @@
+#![allow(dead_code)]
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use log::{info, warn, error};
+use log::{info, warn};
 
-use super::container::{ContainerManager, ContainerStatus};
+use super::container::ContainerManager;
 
 /// Error pattern for detection
 #[derive(Debug, Clone, Serialize, Deserialize)]

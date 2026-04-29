@@ -1,18 +1,17 @@
 use crate::core::LifecycleManager;
-use crate::memory::{KnowledgeBase, SemanticIndexer, RulesEngine, VectorStore};
+use crate::memory::{KnowledgeBase, SemanticIndexer, RulesEngine};
 use crate::memory::knowledge_base::{MemoryType, MemoryEntry, SearchOptions, KnowledgeBaseStats};
-use crate::memory::indexer::{IndexEntry, IndexStats, CodeSymbol, Language, SymbolKind};
-use crate::memory::rules_engine::{Rule, RuleUpdate, EvaluationResult, RulePriority, ConditionType, RuleAction};
-use crate::memory::vector_store::SearchResult as VectorSearchResult;
+use crate::memory::indexer::{IndexStats, CodeSymbol};
+use crate::memory::rules_engine::{Rule, EvaluationResult, RulePriority, ConditionType, RuleAction};
 use crate::llm::{LLMEngine, ChatRequest, Message, LLMResponse, LLMStatus};
 use crate::terminal::{TerminalManager, TerminalInfo};
 use crate::modules::{ToolModule, MemoryModule, AgentModule, ISKINModule};
 use crate::sandbox::container::{
     ContainerManager, ContainerConfig as SandboxContainerConfig,
-    ContainerStatus, ManagedContainer, DockerStatus, ExecResult,
+    ManagedContainer, DockerStatus, ExecResult,
 };
 use crate::sandbox::vnc::{VncManager, VncConfig, VncSession};
-use crate::sandbox::browser::{BrowserAutomation, BrowserConfig, BrowserAction, ActionResult, ScreenshotResult, PageInfo};
+use crate::sandbox::browser::{BrowserAutomation, ScreenshotResult, PageInfo};
 use crate::sandbox::self_healing::{SelfHealingLoop, HealingStats, HealthCheckResult, HealingEvent};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

@@ -1,9 +1,8 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use log::{info, warn};
+use log::info;
 
 /// Tool definition for the tool registry
 #[derive(Debug, Clone, Serialize, Deserialize)]

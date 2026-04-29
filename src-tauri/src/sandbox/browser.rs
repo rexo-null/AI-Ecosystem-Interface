@@ -1,9 +1,11 @@
+#![allow(dead_code)]
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use log::{info, warn, error};
-use async_process::{Command, Child, Stdio};
+use log::{info, warn};
+use async_process::{Command, Stdio};
 
 /// Escape a string for safe embedding in a JavaScript single-quoted string literal.
 fn escape_js_string(s: &str) -> String {

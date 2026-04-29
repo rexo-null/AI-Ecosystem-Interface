@@ -23,7 +23,6 @@ use sandbox::browser::{BrowserAutomation, BrowserConfig};
 use sandbox::self_healing::SelfHealingLoop;
 use terminal::TerminalManager;
 use std::sync::Arc;
-use std::path::PathBuf;
 use log::info;
 
 #[tokio::main]

@@ -1,4 +1,6 @@
-use anyhow::{Result, Context};
+#![allow(dead_code)]
+
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;

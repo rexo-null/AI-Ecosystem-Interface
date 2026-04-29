@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -12,7 +14,7 @@ use bollard::container::{
 };
 use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::image::CreateImageOptions;
-use bollard::models::{ContainerSummary, HostConfig, PortBinding};
+use bollard::models::{HostConfig, PortBinding};
 use futures_util::StreamExt;
 
 /// Container status

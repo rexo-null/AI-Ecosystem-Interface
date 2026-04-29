@@ -1,9 +1,8 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use log::{info, warn, error};
+use log::info;
 use chrono::{DateTime, Utc};
 
 /// Agent task status

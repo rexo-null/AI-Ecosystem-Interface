@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -40,12 +39,14 @@ pub struct MemoryQuery {
 }
 
 /// Memory Module - manages knowledge base and semantic search
+#[allow(dead_code)]
 pub struct MemoryModule {
     entries: Arc<RwLock<HashMap<String, MemoryEntry>>>,
     module_id: String,
     // In future: qdrant_client: Arc<QdrantClient>
 }
 
+#[allow(dead_code)]
 impl MemoryModule {
     pub fn new() -> Self {
         Self {
@@ -152,7 +153,7 @@ impl MemoryModule {
 
         // Update access counts
         for entry in &results {
-            if let Some(e) = entries.get(&entry.id) {
+            if let Some(_e) = entries.get(&entry.id) {
                 // Note: In real implementation, we'd update access_count here
                 // but we can't modify while holding read lock
             }

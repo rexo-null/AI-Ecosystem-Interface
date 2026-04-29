@@ -1,9 +1,11 @@
+#![allow(dead_code)]
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use log::{info, warn};
+use log::info;
 
 /// VNC session configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]

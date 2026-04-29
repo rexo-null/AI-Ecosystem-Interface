@@ -4,6 +4,7 @@ use tokio::sync::RwLock;
 use log::info;
 
 /// Resource limits for sandboxed operations
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ResourceLimits {
     pub max_memory_mb: u64,
@@ -26,11 +27,13 @@ impl Default for ResourceLimits {
 }
 
 /// Resource Manager - tracks and limits resource usage
+#[allow(dead_code)]
 pub struct ResourceManager {
     limits: Arc<RwLock<ResourceLimits>>,
     current_usage: Arc<RwLock<ResourceUsage>>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Default)]
 pub struct ResourceUsage {
     pub memory_mb: u64,
@@ -39,6 +42,7 @@ pub struct ResourceUsage {
     pub active_connections: u32,
 }
 
+#[allow(dead_code)]
 impl ResourceManager {
     pub fn new() -> Self {
         Self {
