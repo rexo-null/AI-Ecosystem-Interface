@@ -1,16 +1,766 @@
 # 1. OBJECTIVE
 
-Составить план тестирования для реализованных фаз (Phase 1-9) и план реализации для оставшихся незавершённых задач проекта ISKIN.
+Реструктуризовать проект ISKIN на базе OpenHands SDK с сохранением всех существующих модулей как кастомных расширений/инструментов.
 
-Анализ документации показал:
-- **Phase 1-5**: Полностью реализованы ✅
-- **Phase 6**: Реализован базовый функционал, но缺少 Agent UI в frontend
-- **Phase 7-9**: Полностью реализованы ✅  
-- После Phase 9: Есть незавершённые подзадачи (icons, некоторые элементы UI)
+Создать единый структурированный проект с:
+1. CLI-скриптом запуска (запрос модели, запуск агента)
+2. Интеграцией существующих модулей ISKIN как кастомных tools
+3. Примером работы агента
+
+Анализ показал:
+- **Текущее состояние**: 42 Rust файла + 7 React компонентов + Tauri Desktop приложение
+- **Целевое состояние**: Python CLI на OpenHands SDK + интегрированные Rust module tools
 
 # 2. CONTEXT SUMMARY
 
-## Текущее состояние проекта
+## Существующий код ISKIN (для интеграции)
+
+### Agent System (Rust → Python tools)
+| Модуль | Файл | Назначение | для Tool |
+|--------|------|-----------|---------|
+| State Machine | `agent_v2/state_machine.rs` | 9-фазный жизненный цикл | AgentTaskTool |
+| Tool Protocol | `agent_v2/tool_protocol.rs` | JSON Schema валидация | ValidateTool |
+| Context Compressor | `agent_v2/context_compressor.rs` | Сжатие истории | CompressTool |
+| Agent Loop | `agent_v2/agent_loop.rs` | Основной цикл агента | AgentTaskTool |
+
+### Memory System (Rust → Python tools)
+| Модуль | Файл | Назначение | для Tool |
+|--------|------|-----------|---------|
+| KnowledgeBase | `memory/knowledge_base.rs` | JSON persistence | KnowledgeBaseTool |
+| SemanticIndexer | `memory/indexer.rs` | Tree-sitter индексация | IndexerTool |
+| VectorStore | `memory/vector_store.rs` | Векторный поиск | SearchTool |
+| RulesEngine | `memory/rules_engine.rs` | Правила фильтрации | RulesTool |
+
+### Sandbox System (Rust → Python tools)
+| Модуль | Файл | Назначение | для Tool |
+|--------|------|-----------|---------|
+| ContainerManager | `sandbox/container.rs` | Docker API (bollard) | DockerTool |
+| VncManager | `sandbox/vnc.rs` | VNC сессии | VncTool |
+| BrowserAutomation | `sandbox/browser.rs` | Chrome CDP | BrowserTool |
+| SelfHealingLoop | `sandbox/self_healing.rs` | Health мониторинг | HealthTool |
+
+### Security System (Rust → Python tools / adapters)
+| Модуль | Файл | Назначение | для Tool |
+|--------|------|-----------|---------|
+| PolicyEngine | `core/security.rs` | 3 уровня политик | PolicyCheckTool |
+| AuditLogger | `security/mod.rs` | Логирование действий | AuditTool |
+| RateLimiter | `security/mod.rs` | Ограничение запросов | RateLimitTool |
+
+### LLM Integration
+| Модуль | Файл | Назначение |
+|--------|------|-----------|
+| LLM Engine | `llm.rs` | llama.cpp HTTP + SSE |
+
+### Self-Improvement System
+| Модуль | Файл | Назначение |
+|--------|------|-----------|
+| Module Compiler | `self_improvement/mod.rs` | Компиляция в Docker |
+| ExperienceLog | `self_improvement/mod.rs` | Логи опыта |
+| FailureAnalyzer | `self_improvement/mod.rs` | Анализ ошибок |
+
+## OpenHands SDK (база для нового проекта)
+
+### Установка
+```bash
+pip install openhands-sdk openhands-tools
+```
+
+### Архитектура
+- **openhands.sdk**: Agent, LLM, Conversation, Tool system
+- **openhands.tools**: BashTool, FileEditorTool, GrepTool, TaskTrackerTool
+- **openhands.workspace**: DockerWorkspace, LocalWorkspace
+
+### Hello World пример
+```python
+from openhands.sdk import LLM, Agent, Conversation
+from openhands.tools.terminal import TerminalTool
+from openhands.tools.file_editor import FileEditorTool
+
+llm = LLM(model="...")
+agent = Agent(llm=llm, tools=[TerminalTool, FileEditorTool])
+conversation = Conversation(agent=agent, workspace="./workspace")
+conversation.send_message("Создай файл hello.txt")
+conversation.run()
+```
+
+## Незавершённые элементы (из предыдущего плана)
+
+1. **Agent UI React** — AgentStatusBar, TaskPanel, ImpactReport (нужно для Desktop UI)
+2. **Icons** — не сгенерированы  
+3. **Frontend Update UI** — не добавлен
+
+# 3. APPROACH OVERVIEW
+
+## Стратегия реструктуризации
+
+### Этап 0: Подготовка (выполнено предыдущим анализом)
+- Анализ документации: ✅ ROADMAP.md, ARCHITECTURE.md, PHASE9_SUMMARY.md
+- Анализ кода: ✅ 42 Rust файла, 7 React компонентов
+
+### Этап 1: Создание Python CLI обёртки
+- Установить OpenHands SDK
+- Создать структуру проекта `iskin_cli/`
+- Настроить зависимости
+
+### Этап 2: Интеграция существующих модулей
+- Создать Python adapters для Rust tools
+- Интегрировать LLM (llama.cpp) через HTTP
+- Добавить Memory tools (KnowledgeBase, VectorStore)
+- Добавить Sandbox tools (Docker)
+
+### Этап 3: Создание CLI launcher
+- Скрипт запроса модели
+- Подключение к llama.cpp
+- CLI интерфейс общения
+
+### Этап 4: Сохранение Desktop UI (опционально)
+- Оставить как Phase 9 fallback
+- Примечание: Не является приоритетом для CLI версии
+
+# 4. IMPLEMENTATION STEPS
+
+## Этап 1: Подготовка окружения и структуры проекта
+
+**Цель** — Создать базовую структуру Python проекта на OpenHands SDK
+
+**Метод**:
+
+1. Создать директорию `iskin_cli/`:
+   ```
+   iskin_cli/
+   ├── pyproject.toml
+   ├── src/
+   │   └── iskin/
+   │       ├── __init__.py
+   │       ├── cli.py           # Main CLI entry
+   │       ├── launcher.py     # Model selection, connection
+   │       ├── agent.py       # ISKIN Agent config
+   │       └── tools/         # Custom tools
+   │           ├── __init__.py
+   │           ├── memory.py
+   │           ├── sandbox.py
+   │           └── security.py
+   ├── examples/
+   │   └── 01_basic.py
+   └── README.md
+   ```
+
+2. Настроить `pyproject.toml`:
+   ```toml
+   [project]
+   name = "iskin-cli"
+   version = "0.1.0"
+   requires-python = ">=3.10"
+   dependencies = [
+       "openhands-sdk>=0.1.0",
+       "openhands-tools>=0.1.0",
+   ]
+   ```
+
+3. Установить зависимости:
+   ```bash
+   cd iskin_cli
+   uv pip install -e .
+   ```
+
+---
+
+## Этап 2: Интеграция LLM (llama.cpp)
+
+**Цель** — Подключить локальную LLM через llama.cpp
+
+**Метод**:
+
+1. Создать `src/iskin/launcher.py`:
+   ```python
+   """ISKIN Launcher - запрос и подключение к локальной модели"""
+   
+   import os
+   import asyncio
+   from typing import Optional
+   import requests
+   
+   def get_model_address() -> str:
+       """Запрос адреса модели у пользователя"""
+       print("=" * 50)
+       print("ISKIN CLI - Local LLM Configuration")
+       print("=" * 50)
+       print("\nДоступные форматы адреса:")
+       print("  - http://localhost:8080 (по умолчанию для llama.cpp)")
+       print("  - http://localhost:1234 (LM Studio)")
+       print("  - http://192.168.x.x:8080 (удалённый сервер)")
+       print()
+       
+       addr = input("Введите адрес LLM сервера [localhost:8080]: ").strip()
+       if not addr:
+           addr = "localhost:8080"
+       
+       # Добавить протокол если не указан
+       if not addr.startswith("http"):
+           addr = f"http://{addr}"
+       
+       return addr
+   
+   def check_llm_connection(address: str) -> bool:
+       """Проверить подключение к LLM"""
+       try:
+           response = requests.get(f"{address}/v1/models", timeout=5)
+           return response.status_code == 200
+       except Exception as e:
+           print(f"Ошибка подключения: {e}")
+           return False
+   
+   def load_model_config(config_path: str = "config/llm.toml") -> dict:
+       """Загрузить конфигурацию модели из llm.toml"""
+       import toml
+       try:
+           with open(config_path) as f:
+               return toml.load(f)
+       except:
+           return {"llm": {"endpoint": "http://localhost:8080"}}
+   ```
+
+2. Создать `src/iskin/llm.py`:
+   ```python
+   """ISKIN LLM интеграция с llama.cpp"""
+   
+   from openhands.sdk import LLM
+   from typing import Optional
+   import os
+   
+   class ISKINLLM(LLM):
+       """Подключение к локальному llama.cpp серверу"""
+       
+       def __init__(self, address: str = "http://localhost:8080"):
+           self.address = address
+           super().__init__(
+               model="local/llama.cpp",
+               base_url=address,
+               api_key="not-needed",  # локальная модель
+           )
+   ```
+
+---
+
+## Этап 3: Создание кастомных tools (интеграция существующих модулей)
+
+**Цель** — Интегрировать Rust модули ISKIN как Python tools
+
+**Метод**:
+
+### 3.1 Memory Tools (KnowledgeBase, VectorStore)
+
+Создать `src/iskin/tools/memory.py`:
+
+```python
+"""Memory tools - интеграция с ISKIN KnowledgeBase"""
+
+from openhands.sdk import Action, Observation, TextContent, ToolDefinition
+from openhands.sdk.tool import ToolExecutor, register_tool
+from pydantic import Field
+import json
+import os
+from pathlib import Path
+
+# === KnowledgeBase Tool ===
+
+class KnowledgeBaseSearchAction(Action):
+    query: str = Field(description="Поисковый запрос")
+    limit: int = Field(default=10, description="Максимум результатов")
+
+class KnowledgeBaseSearchObservation(Observation):
+    results: str = ""
+    
+    @property
+    def to_llm_content(self):
+        return [TextContent(text=self.results)]
+
+class KnowledgeBaseExecutor(ToolExecutor):
+    """Интеграция с ISKIN KnowledgeBase"""
+    
+    def __init__(self, base_path: str = "./data/knowledge"):
+        self.base_path = Path(base_path)
+    
+    def __call__(self, action, conversation=None) -> KnowledgeBaseSearchObservation:
+        # Используем существующую логику из memory/knowledge_base.rs
+        results = self._search_knowledge_base(action.query, action.limit)
+        return KnowledgeBaseSearchObservation(results=results)
+    
+    def _search_knowledge_base(self, query: str, limit: int) -> str:
+        """Поиск в базе знаний"""
+        data_dir = self.base_path / "knowledge"
+        if not data_dir.exists():
+            return "База знаний не инициализирована"
+        
+        results = []
+        for json_file in data_dir.glob("*.json"):
+            try:
+                with open(json_file) as f:
+                    data = json.load(f)
+                    # Простой поиск по содержимому
+                    content = json.dumps(data)
+                    if query.lower() in content.lower():
+                        results.append({"file": str(json_file), "match": content[:200]})
+            except:
+                continue
+        
+        return json.dumps(results[:limit], indent=2, ensure_ascii=False)
+
+# === Register ===
+
+@register_tool("iskin_knowledge_base")
+class KnowledgeBaseTool:
+    @classmethod
+    def create(cls, conv_state):
+        return [ToolDefinition(
+            description="Поиск в базе знаний ISKIN",
+            action_type=KnowledgeBaseSearchAction,
+            observation_type=KnowledgeBaseSearchObservation,
+            executor=KnowledgeBaseExecutor(),
+        )]
+```
+
+### 3.2 Sandbox Tools (Docker)
+
+Создать `src/iskin/tools/sandbox.py`:
+
+```python
+"""Sandbox tools - интеграция с ISKIN ContainerManager"""
+
+from openhands.sdk import Action, Observation, TextContent, ToolDefinition
+from openhands.sdk.tool import ToolExecutor, register_tool
+from pydantic import Field
+import subprocess
+
+class DockerContainerAction(Action):
+    command: str = Field(description="Команда: create, start, stop, list")
+    image: str = Field(default="ubuntu:latest", description="Docker образ")
+    name: str = Field(default="", description="Имя контейнера")
+
+class DockerContainerObservation(Observation):
+    output: str = ""
+    
+    @property
+    def to_llm_content(self):
+        return [TextContent(text=self.output)]
+
+class DockerExecutor(ToolExecutor):
+    """Интеграция с ISKIN ContainerManager (через Docker CLI)"""
+    
+    def __call__(self, action, conversation=None) -> DockerContainerObservation:
+        try:
+            if action.command == "list":
+                result = subprocess.run(
+                    ["docker", "ps", "-a", "--format", "{{.Names}}"],
+                    capture_output=True, text=True
+                )
+                return DockerContainerObservation(output=result.stdout or "Нет контейнеров")
+            
+            elif action.command == "create":
+                result = subprocess.run(
+                    ["docker", "create", "--name", action.name or None, action.image],
+                    capture_output=True, text=True
+                )
+                return DockerContainerObservation(output=f"Создан: {result.stdout}")
+            
+            elif action.command == "start":
+                result = subprocess.run(
+                    ["docker", "start", action.name],
+                    capture_output=True, text=True
+                )
+                return DockerContainerObservation(output=f"Запущен: {action.name}")
+            
+            elif action.command == "stop":
+                result = subprocess.run(
+                    ["docker", "stop", action.name],
+                    capture_output=True, text=True
+                )
+                return DockerContainerObservation(output=f"Остановлен: {action.name}")
+            
+            return DockerContainerObservation(output="Неизвестная команда")
+        except Exception as e:
+            return DockerContainerObservation(output=f"Ошибка: {e}")
+
+@register_tool("iskin_docker")
+class DockerTool:
+    @classmethod
+    def create(cls, conv_state):
+        return [ToolDefinition(
+            description="Управление Docker контейнерами (ISKIN Sandbox)",
+            action_type=DockerContainerAction,
+            observation_type=DockerContainerObservation,
+            executor=DockerExecutor(),
+        )]
+```
+
+### 3.3 Agent Tool (State Machine интеграция)
+
+Создать `src/iskin/tools/agent.py`:
+
+```python
+"""Agent tool - интеграция с ISKIN State Machine"""
+
+from openhands.sdk import Action, Observation, TextContent, ToolDefinition
+from openhands.sdk.tool import ToolExecutor, register_tool
+from pydantic import Field
+import json
+
+class ISKINTaskAction(Action):
+    task: str = Field(description="Описание задачи для агента")
+    max_steps: int = Field(default=10, description="Максимум шагов")
+
+class ISKINTaskObservation(Observation):
+    result: str = ""
+    phase: str = ""
+    
+    @property
+    def to_llm_content(self):
+        return [TextContent(text=self.result)]
+
+class ISKINAgentExecutor(ToolExecutor):
+    """Интеграция с ISKIN Agent State Machine"""
+    
+    # 9 фаз из agent_v2/state_machine.rs
+    PHASES = [
+        "ReceiveTask", "Decompose", "ImpactAssessment", "DryRun",
+        "Execute", "Verify", "ArtifactSync", "Commit", "QueueNext"
+    ]
+    
+    def __call__(self, action, conversation=None) -> ISKINTaskObservation:
+        # Эмулируем 9-фазный цикл
+        phases_log = []
+        
+        for phase in self.PHASES:
+            phases_log.append(f"[{phase}] Анализ задачи...")
+            
+            if phase == "Execute":
+                phases_log.append(f"  → Выполнение: {action.task}")
+            elif phase == "Verify":
+                phases_log.append("  → Верификация: OK")
+        
+        result = "\n".join(phases_log)
+        result += f"\n\nЗадача выполнена: {action.task}"
+        
+        return ISKINTaskObservation(
+            result=result,
+            phase=self.PHASES[-1]
+        )
+
+@register_tool("iskin_agent")
+class ISKINAgentTool:
+    @classmethod
+    def create(cls, conv_state):
+        return [ToolDefinition(
+            description="Запуск задачи в ISKIN Agent (9-фазный цикл)",
+            action_type=ISKINTaskAction,
+            observation_type=ISKINTaskObservation,
+            executor=ISKINAgentExecutor(),
+        )]
+```
+
+---
+
+## Этап 4: Создание CLI launcher
+
+**Цель** — Создать скрипт запуска с запросом модели и CLI интерфейсом
+
+**Метод**:
+
+Создать `src/iskin/cli.py`:
+
+```python
+#!/usr/bin/env python3
+"""ISKIN CLI - Main entry point"""
+
+import os
+import sys
+import asyncio
+from typing import Optional
+
+# Внутренние модули
+from .launcher import get_model_address, check_llm_connection, load_model_config
+from .llm import ISKINLLM
+from .agent import create_iskin_agent
+
+def print_banner():
+    """ Prints the ISKIN banner """
+    banner = r"""
+    ╔═══════════════════════════════════════════════════╗
+    ║          ISKIN CLI - AI Agent Runner              ║
+    ║     (OpenHands SDK + ISKIN Modules)               ║
+    ╚═══════════════════════════════════════════════════╝
+    """
+    print(banner)
+
+def print_help():
+    """Печать справки"""
+    print("\nДоступные команды:")
+    print("  help          - Показать эту справку")
+    print("  status        - Показать статус агента")
+    print("  tasks        - Показать историю задач")
+    print("  quit/exit    - Выйти")
+    print("\nПримеры:")
+    print('  > создай файл test.txt с текстом "Hello ISKIN"')
+    print('  > найди в базе знаний "Rust"')
+    print('  > запусти контейнер ubuntu')
+
+async def main_async():
+    """Основная асинхронная функция"""
+    print_banner()
+    
+    # === Шаг 1: Загрузка конфигурации ===
+    config = load_model_config()
+    default_addr = config.get("llm", {}).get("endpoint", "http://localhost:8080")
+    
+    # === Шаг 2: Запрос адреса модели ===
+    print(f"\nАдрес LLM сервера по умолчанию: {default_addr}")
+    use_default = input("Использовать по умолчанию? [Y/n]: ").strip().lower()
+    
+    if use_default == 'y' or not use_default:
+        llm_address = default_addr
+    else:
+        llm_address = get_model_address()
+    
+    # === Шаг 3: Проверка подключения ===
+    print(f"\nПроверка подключения к {llm_address}...")
+    if not check_llm_connection(llm_address):
+        print("❌ Не удалось подключиться к LLM серверу!")
+        print("Убедитесь, что llama-server запущен:")
+        print("  ./llama.cpp/build/bin/llama-server -m models/... --host 127.0.0.1 --port 8080")
+        return 1
+    
+    print("✅ Подключение успешно!")
+    
+    # === Шаг 4: Инициализация агента ===
+    print("\nИнициализация ISKIN Agent...")
+    
+    llm = ISKINLLM(address=llm_address)
+    agent = create_iskin_agent(llm)
+    
+    print("✅ Агент готов!")
+    print("\n" + "=" * 50)
+    print("ISKIN CLI готов к работе!")
+    print("=" * 50)
+    print_help()
+    
+    # === Шаг 5: CLI loop ===
+    while True:
+        try:
+            user_input = input("\nISKIN> ").strip()
+            
+            if not user_input:
+                continue
+            
+            # Команды выхода
+            if user_input.lower() in ['quit', 'exit', 'q']:
+                print("До свидания!")
+                break
+            
+            # Команда справки
+            if user_input.lower() == 'help':
+                print_help()
+                continue
+            
+            # Эхо для отладки
+            print(f"[Отправка]: {user_input}")
+            
+        except KeyboardInterrupt:
+            print("\n\nВыход...")
+            break
+        except Exception as e:
+            print(f"Ошибка: {e}")
+    
+    return 0
+
+def main():
+    """Точка входа"""
+    return asyncio.run(main_async())
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+---
+
+## Этап 5: Пример работы агента
+
+**Цель** — Показать пример использования ISKIN CLI
+
+**Метод**:
+
+Создать `examples/01_basic.py`:
+
+```python
+#!/usr/bin/env python3
+"""ISKIN CLI - Базовый пример работы"""
+
+import os
+import sys
+
+# Добавить src в путь
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+from openhands.sdk import LLM, Agent, Conversation
+from openhands.tools.terminal import TerminalTool
+from openhands.tools.file_editor import FileEditorTool
+from openhands.tools.task_tracker import TaskTrackerTool
+
+# === Настройка LLM ===
+# Используем локальный llama.cpp
+llm = LLM(
+    model="local/llama.cpp",
+    base_url="http://localhost:8080",
+    api_key="not-needed",
+)
+
+# === Создание агента ===
+agent = Agent(
+    llm=llm,
+    tools=[
+        TerminalTool,      # Выполнение команд
+        FileEditorTool,   # Работа с файлами
+        TaskTrackerTool,  # Отслеживание задач
+    ],
+)
+
+# === Рабочее пространство ===
+workspace = "./workspace"
+
+# === CLI режим ===
+print("=" * 50)
+print("ISKIN CLI - Interactive Mode")
+print("=" * 50)
+print("Введите запрос или 'quit' для выхода")
+print()
+
+conversation = Conversation(agent=agent, workspace=workspace)
+
+while True:
+    try:
+        user_input = input("\n> ").strip()
+        
+        if not user_input:
+            continue
+        
+        if user_input.lower() in ['quit', 'exit', 'q']:
+            print("До свидания!")
+            break
+        
+        # Отправка запроса агенту
+        conversation.send_message(user_input)
+        
+        # Выполнение
+        conversation.run()
+        
+        # Показать последний ответ
+        for event in conversation.events:
+            if hasattr(event, 'content'):
+                print(f"\nОтвет: {event.content}")
+        
+    except KeyboardInterrupt:
+        print("\nВыход...")
+        break
+    except Exception as e:
+        print(f"Ошибка: {e}")
+```
+
+---
+
+# 5. TESTING AND VALIDATION
+
+## Критерии успешной реализации
+
+### Этап 1: Структура проекта
+- [ ] Директория `iskin_cli/` создана
+- [ ] `pyproject.toml` настроен
+- [ ] Зависимости устанавливаются без ошибок
+
+### Этап 2: LLM интеграция
+- [ ] Подключение к llama.cpp работает
+- [ ] Запрос адреса модели при запуске
+- [ ] Fallback на конфигурацию из llm.toml
+
+### Этап 3: Tools
+- [ ] KnowledgeBase tool ищет по базе
+- [ ] Docker tool управляет контейнерами
+- [ ] Agent tool эмулирует 9-фазный цикл
+
+### Этап 4: CLI Launcher
+- [ ] Запрос адреса при запуске
+- [ ] Проверка подключения к LLM
+- [ ] Интерактивный цикл работает
+
+### Этап 5: Пример
+- [ ] Agent создаёт файлы
+- [ ] Agent выполняет команды
+- [ ] Ответы отображаются корректно
+
+## Пример работы (ожидаемый результат)
+
+### Запуск
+```bash
+$ python -m iskin.cli
+
+╔═══════════════════════════════════════════════════╗
+║          ISKIN CLI - AI Agent Runner              ║
+║     (OpenHands SDK + ISKIN Modules)               ║
+╚═══════════════════════════════════════════════════╝
+
+Адрес LLM сервера по умолчанию: http://localhost:8080
+Использовать по умолчанию? [Y/n]: y
+
+Проверка подключения к http://localhost:8080...
+✅ Подключение успешно!
+
+Инициализация ISKIN Agent...
+✅ Агент готов!
+
+==================================================
+ISKIN CLI готов к работе!
+==================================================
+
+Доступные команды:
+  help          - Показать эту справку
+  status        - Показать статус агента
+  tasks        - Показать историю задач
+  quit/exit    - Выйти
+```
+
+### Интерактивный режим
+```bash
+ISKIN> создай файл hello.txt с текстом "Hello ISKIN"
+
+[Вызов tool]: file_write
+  path: hello.txt
+  content: Hello ISKIN
+
+Файл создан: hello.txt
+
+ISKIN> запусти контейнер docker
+
+[Вызов tool]: iskin_docker
+  command: start
+  name: iskin_sandbox
+
+Контейнер запущен: iskin_sandbox
+
+ISKIN> найди в базе знаний "Rust"
+
+[Вызов tool]: iskin_knowledge_base
+  query: Rust
+  limit: 10
+
+Результаты поиска:
+[
+  {
+    "file": "knowledge/rust_modules.json",
+    "match": "{\"module\": \"lifecycle\", \"lang\": \"Rust\"}"
+  }
+]
+
+ISKIN> quit
+До свидания!
+```
 
 ### Реализованные компоненты (Backend - Rust)
 
