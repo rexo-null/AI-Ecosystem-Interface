@@ -16,14 +16,14 @@
 │                      ISKIN Desktop App (Tauri v2)               │
 ├─────────────────────────────────────────────────────────────────┤
 │  Frontend (React + TypeScript)                                  │
-│  ┌──────────┐ ┌───────────┐ ┌──────────┐ ┌──────────────────┐  │
-│  │ FileTree │ │ Monaco    │ │ ChatPanel│ │ TerminalPanel    │  │
-│  │ (дерево  │ │ Editor    │ │ (чат с   │ │ (xterm.js + PTY) │  │
-│  │ проекта) │ │ (редактор)│ │ агентом) │ │                  │  │
-│  ├──────────┤ ├───────────┤ ├──────────┤ ├──────────────────┤  │
-│  │Knowledge │ │ CodeSearch│ │ Sandbox  │ │ AgentStatusBar   │  │
-│  │ Base UI  │ │           │ │ Panel    │ │ (состояния)      │  │
-│  └──────────┘ └───────────┘ └──────────┘ └──────────────────┘  │
+│  ┌──────────┐ ┌───────────┐ ┌──────────┐ ┌──────────────────┐   │
+│  │ FileTree │ │ Monaco    │ │ ChatPanel│ │ TerminalPanel    │   │
+│  │ (дерево  │ │ Editor    │ │ (чат с   │ │ (xterm.js + PTY) │   │
+│  │ проекта) │ │ (редактор)│ │ агентом) │ │                  │   │
+│  ├──────────┤ ├───────────┤ ├──────────┤ ├──────────────────┤   │
+│  │Knowledge │ │ CodeSearch│ │ Sandbox  │ │ AgentStatusBar   │   │
+│  │ Base UI  │ │           │ │ Panel    │ │ (состояния)      │   │
+│  └──────────┘ └───────────┘ └──────────┘ └──────────────────┘   │
 ├─────────────────────────────────────────────────────────────────┤
 │  Tauri IPC Bridge (invoke / events)                             │
 ├─────────────────────────────────────────────────────────────────┤
@@ -34,28 +34,28 @@
 │  │ ResourceManager — CPU/RAM мониторинг                    │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                 │
-│  Hot-Reload Modules (Dylib .so/.dll/.dylib + WASM .wasm)       │
-│  ┌──────────────┐ ┌──────────────┐ ┌────────────────────┐      │
-│  │ AgentModule   │ │ ToolModule   │ │ MemoryModule       │      │
-│  │ (state machine│ │ (tool registry│ │ (knowledge base,  │      │
-│  │  планирование │ │  file/shell/  │ │  vector store,    │      │
-│  │  кодинг,      │ │  network)     │ │  tree-sitter)     │      │
-│  │  тестирование)│ │               │ │                   │      │
-│  └──────────────┘ └──────────────┘ └────────────────────┘      │
+│  Hot-Reload Modules (Dylib .so/.dll/.dylib + WASM .wasm)        │
+│  ┌──────────────┐ ┌──────────────┐ ┌────────────────────┐       │
+│  │ AgentModule  │ │ ToolModule   │ │ MemoryModule       │       │
+│  │(state machine│ │(tool registry│ │ (knowledge base,   │       │
+│  │ планирование │ │  file/shell/ │ │  vector store,     │       │
+│  │ кодинг,      │ │  network)    │ │  tree-sitter)      │       │
+│  │ тестирование)│ │              │ │                    │       │
+│  └──────────────┘ └──────────────┘ └────────────────────┘       │
 │                                                                 │
 │  System Services                                                │
-│  ┌──────────────┐ ┌──────────────┐ ┌────────────────────┐      │
-│  │ LLM Client   │ │ Sandbox      │ │ Self-Healing       │      │
-│  │ (llama.cpp   │ │ (Docker API, │ │ (мониторинг,       │      │
-│  │  HTTP API)   │ │  VNC, Browser)│ │  авто-рестарт)     │      │
-│  └──────────────┘ └──────────────┘ └────────────────────┘      │
+│  ┌──────────────┐ ┌──────────────┐ ┌────────────────────┐       │
+│  │ LLM Client   │ │ Sandbox      │ │ Self-Healing       │       │
+│  │ (llama.cpp   │ │ (Docker API, │ │ (мониторинг,       │       │
+│  │  HTTP API)   │ │ VNC, Browser)│ │  авто-рестарт)     │       │
+│  └──────────────┘ └──────────────┘ └────────────────────┘       │
 ├─────────────────────────────────────────────────────────────────┤
-│  External Processes                                              │
-│  ┌──────────────┐ ┌──────────────┐ ┌────────────────────┐      │
-│  │ llama-server  │ │ Docker       │ │ Shell (PTY)        │      │
-│  │ (Qwen2.5-    │ │ Daemon       │ │                    │      │
-│  │  Coder-14B)  │ │              │ │                    │      │
-│  └──────────────┘ └──────────────┘ └────────────────────┘      │
+│  External Processes                                             │
+│  ┌──────────────┐ ┌──────────────┐ ┌────────────────────┐       │
+│  │ llama-server │ │ Docker       │ │ Shell (PTY)        │       │
+│  │ (Qwen2.5-    │ │ Daemon       │ │                    │       │
+│  │  Coder-14B)  │ │              │ │                    │       │
+│  └──────────────┘ └──────────────┘ └────────────────────┘       │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -283,49 +283,84 @@ impl LLMRouter {
 
 ---
 
-## Состояния агента (State Machine)
+## Состояния агента (State Machine) — Devin-level
+
+### Жизненный цикл задачи (9 фаз)
 
 ```
-                    ┌──────────┐
-                    │  IDLE    │ ← начальное состояние
-                    └────┬─────┘
-                         │ пользователь даёт задачу
-                    ┌────▼─────┐
-                    │ ANALYZING│ ← анализ задачи, чтение контекста
-                    └────┬─────┘
-                         │
-                    ┌────▼─────┐
-                    │ PLANNING │ ← декомпозиция на шаги, todo list
-                    └────┬─────┘
-                         │ подтверждение плана (опционально)
-                    ┌────▼─────┐
-              ┌────►│ CODING   │ ← генерация/редактирование кода
-              │     └────┬─────┘
-              │          │
-              │     ┌────▼─────┐
-              │     │ TESTING  │ ← запуск тестов в песочнице
-              │     └────┬─────┘
-              │          │
-              │          ├── тесты не прошли ──► CODING (цикл)
-              │          │
-              │     ┌────▼─────┐
-              │     │ REVIEWING│ ← self-review кода, lint, typecheck
-              │     └────┬─────┘
-              │          │
-              │          ├── найдены проблемы ──► CODING (цикл)
-              │          │
-              │     ┌────▼──────┐
-              │     │ REPORTING │ ← отчёт пользователю (было/стало)
-              │     └────┬──────┘
-              │          │
-              │     ┌────▼──────────┐
-              └─────│SELF_IMPROVING │ ← улучшение собственных модулей
-                    └────┬──────────┘
-                         │
-                    ┌────▼─────┐
-                    │  IDLE    │
-                    └──────────┘
+┌─────────────┐
+│ ReceiveTask  │ ← пользователь даёт задачу
+└──────┬──────┘
+       │
+┌──────▼──────┐
+│  Decompose   │ ← разбивка на ≤3 подзадачи (DECOMPOSITION_LIMIT)
+└──────┬──────┘
+       │
+┌──────▼──────────────┐
+│  ImpactAssessment    │ ← ОБЯЗАТЕЛЬНО: affected_files, doc_sync_needed,
+└──────┬──────────────┘   tests_to_run, rollback_plan (JSON Schema)
+       │
+       │ (risk > safe?)
+       │
+┌──────▼──────┐
+│   DryRun     │ ← sandbox execution (опционально для safe actions)
+└──────┬──────┘
+       │
+┌──────▼──────┐
+│   Execute    │ ← выполнение действия (tool call)
+└──────┬──────┘
+       │
+┌──────▼──────┐        ┌────────────┐
+│   Verify     │──fail─►│  Rollback   │──► Decompose (retry, max_retry=3)
+└──────┬──────┘        └────────────┘
+       │ pass
+┌──────▼──────────┐
+│  ArtifactSync    │ ← DocSyncAgent: обновление документации/планов
+└──────┬──────────┘
+       │
+┌──────▼──────┐
+│   Commit     │ ← git commit + snapshot
+└──────┬──────┘
+       │
+┌──────▼──────┐
+│  QueueNext   │ ← следующая подзадача или завершение → отчёт пользователю
+└─────────────┘
 ```
+
+### Обязательные правила агента (Devin-level)
+
+Эти правила вшиваются в PolicyEngine и State Machine. Они не опциональны.
+
+| # | Правило | Описание | Реализация |
+|---|---------|----------|------------|
+| 1 | `DECOMPOSITION_LIMIT` | Задача разбивается на ≤3 шага за один цикл. Остальное → подзадачи в очередь | `AgentLoop` разбивает `task` → `subtasks[]`. Если `len > 3` → рекурсия |
+| 2 | `IMPACT_BEFORE_ACTION` | Перед Execute обязателен ImpactReport. Без него переход заблокирован | JSON Schema: `affected_files`, `doc_sync_needed`, `tests_to_run`, `rollback_plan` |
+| 3 | `DRY_RUN_FIRST` | Действие с побочным эффектом (risk > safe) сначала в sandbox | `ToolExecutor` проверяет `risk_level` через PolicyEngine |
+| 4 | `VERIFY_OR_ROLLBACK` | Если Verify (тесты/линтер) падает → автоматический откат | `RollbackManager.restore(snapshot_id)` → возврат в Decompose |
+| 5 | `ARTIFACT_SYNC_MANDATORY` | После Execute → DocSyncAgent проверяет и обновляет документацию | Отдельный поток: диффит state → генерирует патчи → коммитит |
+| 6 | `CONTEXT_BUDGET` | history > 6K токенов → автосаммаризация | Оставляет: текущий план, последние 5 шагов, критические ошибки |
+| 7 | `AUDIT_EVERYTHING` | Каждый LLM-вызов, tool call, решение логируется | `AuditLogger`: время, хэш, rationale, результат |
+| 8 | `NO_SILENT_FAILURE` | Невалидный tool_call → tool_validation_error в промпт | `LLMRouter` ловит `parse_error`, возвращает ошибку с примером |
+
+### Context Management (управление контекстом)
+
+14B модель с 8K контекстом требует активного управления историей:
+
+```
+Стратегия: Sliding Window + Auto-Summarization
+
+conversation_history > 6K токенов?
+  ├── Да → ContextCompressor:
+  │        1. Оставить system prompt (фиксированный)
+  │        2. Оставить текущий план + активную подзадачу
+  │        3. Сжать ранние сообщения в резюме через LLM
+  │        4. Оставить последние 5 сообщений полностью
+  │        5. Критические ошибки → сохранить всегда
+  │        6. Длинные логи/выводы → в KnowledgeBase (векторный поиск)
+  └── Нет → использовать как есть
+```
+
+Принцип: модель не должна "забывать" цель задачи и текущий прогресс, даже при длинных сессиях.
 
 ### Инструменты агента (tools):
 | Инструмент | Описание | Реализация |
@@ -369,101 +404,35 @@ impl LLMRouter {
 - SandboxPanel UI
 - 40 Tauri-команд
 
-### Фаза 4: LLM Integration (Следующая)
-**Цель:** Подключить реальную LLM через чистый llama.cpp
+### Фаза 4: LLM Integration ✅ (Завершена)
+- `llm.rs` (~600 строк): `LLMEngine`, `LLMConfig`, `ModelProfile`, SSE streaming через `reqwest`
+- Атомарная conversation_history (user+assistant пушатся только при success)
+- `ChatPanel.tsx`: streaming + markdown + code blocks + status indicator + кнопка "Выполнить"
+- `config/llm.toml`: model profiles, server args, оптимизация под RX 6700 XT
+- `scripts/setup.sh/bat` + `scripts/run.sh/bat`: автоматическая установка и запуск
+- Tauri events: `llm-token`, `llm-done`, `llm-error`
+- Tauri commands: `chat_with_llm`, `llm_status`, `llm_stop_generation`
 
-#### 4.1 Backend: LLM Client
-- Убрать candle-core/candle-transformers/tokenizers из Cargo.toml
-- Переписать `llm.rs` → HTTP-клиент к llama.cpp server API:
-  - `POST /completion` — генерация текста
-  - Streaming через SSE (Server-Sent Events)
-  - System prompt, temperature, max_tokens, stop tokens
-  - Conversation history management
-- Новые Tauri-команды:
-  - `chat_with_llm` (обновить существующую)
-  - `llm_status` — статус llama-server
-  - `llm_stop_generation` — прервать генерацию
+### Фаза 5: Interactive Terminal ✅ (Завершена)
+- `terminal/mod.rs`: `TerminalManager` с `portable-pty`, `std::sync::Mutex`
+- Кроссплатформенный PTY (bash/powershell), авто-определение `$SHELL`
+- Real resize через `MasterPty` (TIOCSWINSZ/SIGWINCH)
+- `TerminalPanel.tsx`: xterm.js + fit addon, мульти-таб (create/close/switch)
+- Интеграция ChatPanel → Terminal: кнопка "Выполнить" на bash/sh/shell code blocks
+- Tauri commands: `terminal_create`, `terminal_write`, `terminal_resize`, `terminal_close`, `terminal_list`
+- `is_alive: AtomicBool` — корректное определение завершения процесса
 
-#### 4.2 Frontend: Streaming Chat
-- Обновить `ChatPanel.tsx`:
-  - Streaming отображение ответов (посимвольно)
-  - Markdown рендеринг ответов (уже есть react-markdown)
-  - Code blocks с подсветкой синтаксиса
-  - Кнопка "Копировать код" / "Вставить в редактор" / "Выполнить в терминале"
-  - Индикатор загрузки и кнопка "Стоп"
+### Фаза 6: Autonomous Agent — Devin-level (Следующая)
+**Цель:** Полноценный автономный агент с 9-фазным жизненным циклом
 
-#### 4.3 Скрипты установки
-- `scripts/setup.sh` (Linux/macOS):
-  - Установка Rust toolchain (rustup)
-  - Установка системных зависимостей (libgtk3, libwebkit2gtk-4.1)
-  - Клонирование и сборка llama.cpp из GitHub
-  - Скачивание GGUF модели Qwen2.5-Coder-14B (huggingface-cli)
-  - npm install
-- `scripts/setup.bat` (Windows):
-  - Аналог для Windows
-- `scripts/run.sh` / `scripts/run.bat`:
-  - Запуск llama-server с правильными параметрами
-  - Запуск `cargo tauri dev`
-- Обновить README.md
-
-#### 4.4 Конфигурация
-- `config/llm.toml` — настройки LLM:
-  ```toml
-  [llm]
-  model_path = "models/qwen2.5-coder-14b-instruct-q5_k_m.gguf"
-  host = "127.0.0.1"
-  port = 8080
-  context_length = 8192
-  gpu_layers = -1  # все слои на GPU, 0 = CPU only
-  threads = 8
-  ```
-
-### Фаза 5: Interactive Terminal
-**Цель:** Полноценный интерактивный терминал в UI
-
-#### 5.1 Backend: PTY Manager
-- Новый модуль `src-tauri/src/terminal/mod.rs`:
-  - Spawn PTY процесс (bash/powershell)
-  - Чтение stdout/stderr через async stream
-  - Запись stdin
-  - Resize PTY
-  - Множественные сессии (tabs)
-- Tauri-команды:
-  - `terminal_create` — создать сессию
-  - `terminal_write` — отправить input
-  - `terminal_resize` — изменить размер
-  - `terminal_close` — закрыть сессию
-- Tauri Events:
-  - `terminal-output` — streaming output через события
-
-#### 5.2 Frontend: xterm.js
-- Переписать `TerminalPanel.tsx`:
-  - Инициализация xterm.js Terminal
-  - Подключение к Tauri PTY через invoke + events
-  - Поддержка ANSI escape codes, цвета
-  - Вкладки (множественные терминалы)
-  - Copy/paste
-
-### Фаза 6: Autonomous Agent (Agent State Machine)
-**Цель:** Полноценный автономный агент с состояниями
-
-#### 6.1 Agent Core
-- Обновить `agent_module.rs` → State Machine:
-  - Состояния: Idle → Analyzing → Planning → Coding → Testing → Reviewing → Reporting → SelfImproving
-  - Transition rules: какие переходы разрешены
-  - Контекст задачи: текущая цель, план, прогресс
-- Agent Loop:
-  ```
-  while task not complete:
-    1. Analyze context (read files, search code)
-    2. Plan next step (LLM → structured output)
-    3. Execute step (tool call: file_write, shell_exec, etc.)
-    4. Validate result (check output, run tests)
-    5. Report progress to user
-  ```
+#### 6.1 Agent Core (State Machine)
+- `AgentPhase` enum: ReceiveTask → Decompose → ImpactAssessment → DryRun → Execute → Verify → ArtifactSync → Commit → QueueNext
+- Строгие правила переходов (см. раздел "Обязательные правила агента")
+- `AgentState`: current_phase, task_queue, conversation_history, project_state
+- Agent Loop с `max_retry=3` и автоматическим fallback
 
 #### 6.2 Tool Use Protocol
-- LLM вызывает инструменты через structured output (JSON):
+- LLM → structured JSON → Schema validation → PolicyEngine → tool call → result → LLM:
   ```json
   {
     "thought": "Нужно создать файл calc.py",
@@ -471,14 +440,21 @@ impl LLMRouter {
     "args": { "path": "calc.py", "content": "def add(a, b): ..." }
   }
   ```
-- Agent парсит JSON → вызывает ToolModule → передаёт результат обратно в LLM
-- PolicyEngine проверяет каждое действие
+- JSON Schema валидация каждого tool call ДО исполнения
+- `tool_validation_error` при невалидном JSON (не ошибка исполнения)
+- PolicyEngine проверяет risk_level каждого действия
 
-#### 6.3 Frontend: Agent UI
-- `AgentStatusBar` — текущее состояние (Planning/Coding/Testing...)
-- `TaskPanel` — список задач и подзадач с прогрессом
-- Подтверждение опасных действий (модальное окно)
-- Streaming log действий агента
+#### 6.3 Context Management
+- `ContextCompressor`: автосаммаризация при history > 6K токенов
+- Sliding window: system prompt + сжатое резюме + последние 5 сообщений
+- Длинные логи → KnowledgeBase (векторный поиск), не в историю
+
+#### 6.4 Frontend: Agent UI
+- `AgentStatusBar` — текущая фаза (ReceiveTask/Decompose/ImpactAssessment/Execute...)
+- `TaskPanel` — задачи и подзадачи с прогрессом
+- `ImpactReport` view — что будет затронуто перед выполнением
+- Action log — streaming лог действий с rationale
+- Confirmation dialogs для опасных операций
 
 ### Фаза 7: Self-Improvement (Hot-Reload в действии)
 **Цель:** Агент может улучшать собственные модули
@@ -514,7 +490,7 @@ impl LLMRouter {
 
 - PolicyEngine → полноценная RBAC система
 - Sandboxed execution: все опасные операции только в Docker
-- Audit log: полная история действий агента
+- Audit log: полная история действий агента с timestamps, хэшами, rationale
 - Rate limiting на LLM-запросы
 - Ограничение файловой системы (whitelist директорий)
 - Подтверждение пользователем для: удаление файлов, sudo, network, module reload
@@ -527,45 +503,67 @@ impl LLMRouter {
 - Стабильный API для custom модулей
 - Alpha → Beta → Release
 
+### Фаза 10: ISKIN Butler — OS-Native AI Assistant (Future)
+**Цель:** Расширение ISKIN из IDE-агента в системного "цифрового дворецкого"
+
+Требует завершения Phase 6-8. Подробный план в ROADMAP.md.
+
+Ключевые идеи:
+- Выделение общего ядра `iskin-core` (LLM, Agent, Policy, Tools, State)
+- Два продукта: `iskin-ide` (IDE) + `iskin-butler` (OS-level assistant)
+- Системные тулы: сканирование диска, поиск дубликатов, управление автозагрузкой
+- Трёхуровневая безопасность: `safe` → `confirm` → `dangerous`
+- Плагинная архитектура: `ToolManifest` + `ToolRegistry`
+- UI: системный трей, чат-окно, дашборд, контекстное меню проводника
+
 ---
 
 ## Текущее состояние компонентов
 
 | Компонент | Статус | Файл(ы) |
 |-----------|--------|---------|
-| LifecycleManager (hot-reload) | Реализован (Dylib + WASM) | `core/lifecycle.rs` |
-| PolicyEngine (security) | Реализован (3 уровня) | `core/security.rs` |
-| ResourceManager | Реализован | `core/resources.rs` |
-| KnowledgeBase | Реализован (JSON + full-text) | `memory/knowledge_base.rs` |
-| SemanticIndexer (Tree-sitter) | Реализован (Rust/TS/Python) | `memory/indexer.rs` |
-| VectorStore (Qdrant fallback) | Реализован | `memory/vector_store.rs` |
-| RulesEngine | Реализован | `memory/rules_engine.rs` |
-| ContainerManager (Docker) | Реализован (bollard API) | `sandbox/container.rs` |
-| VncManager | Реализован | `sandbox/vnc.rs` |
-| BrowserAutomation (CDP) | Реализован | `sandbox/browser.rs` |
-| SelfHealingLoop | Реализован | `sandbox/self_healing.rs` |
-| LLM Engine | **Placeholder** → нужен llama.cpp HTTP client | `llm.rs` |
-| TerminalPanel | **Статический HTML** → нужен xterm.js + PTY | `TerminalPanel.tsx` |
-| AgentModule | **Базовый** → нужна State Machine | `modules/agent_module.rs` |
-| ToolModule | Реализован (file_read/write/run) | `modules/tool_module.rs` |
-| Module Compiler | **Не начат** | — |
-| Agent UI (status, tasks) | **Не начат** | — |
-| Скрипты установки | **Не начат** | — |
+| LifecycleManager (hot-reload) | ✅ Реализован (Dylib + WASM) | `core/lifecycle.rs` |
+| PolicyEngine (security) | ✅ Реализован (3 уровня) | `core/security.rs` |
+| ResourceManager | ✅ Реализован | `core/resources.rs` |
+| KnowledgeBase | ✅ Реализован (JSON + full-text) | `memory/knowledge_base.rs` |
+| SemanticIndexer (Tree-sitter) | ✅ Реализован (Rust/TS/Python) | `memory/indexer.rs` |
+| VectorStore (Qdrant fallback) | ✅ Реализован | `memory/vector_store.rs` |
+| RulesEngine | ✅ Реализован | `memory/rules_engine.rs` |
+| ContainerManager (Docker) | ✅ Реализован (bollard API) | `sandbox/container.rs` |
+| VncManager | ✅ Реализован | `sandbox/vnc.rs` |
+| BrowserAutomation (CDP) | ✅ Реализован | `sandbox/browser.rs` |
+| SelfHealingLoop | ✅ Реализован | `sandbox/self_healing.rs` |
+| LLM Engine | ✅ Реализован (llama.cpp HTTP + SSE streaming) | `llm.rs` |
+| TerminalManager (PTY) | ✅ Реализован (portable-pty, мульти-таб) | `terminal/mod.rs` |
+| TerminalPanel (xterm.js) | ✅ Реализован (fit addon, tabs, resize) | `TerminalPanel.tsx` |
+| ChatPanel (streaming) | ✅ Реализован (markdown, code blocks) | `ChatPanel.tsx` |
+| Скрипты установки | ✅ Реализованы (ROCm/Vulkan авто-определение) | `scripts/setup.sh/bat`, `scripts/run.sh/bat` |
+| Config (LLM) | ✅ Реализован (model profiles, server args) | `config/llm.toml` |
+| ToolModule | ✅ Реализован (file_read/write/run) | `modules/tool_module.rs` |
+| AgentModule (State Machine) | **Базовый** → нужна 9-фазная State Machine | `modules/agent_module.rs` |
+| ContextCompressor | **Не начат** → Phase 6 | — |
+| ImpactAssessment | **Не начат** → Phase 6 | — |
+| DocSyncAgent | **Не начат** → Phase 6 | — |
+| Agent UI (status, tasks) | **Не начат** → Phase 6 | — |
+| Module Compiler | **Не начат** → Phase 7 | — |
+| AuditLogger | **Не начат** → Phase 8 | — |
 
 ---
 
 ## Приоритет реализации
 
 ```
-Фаза 4 (LLM) ──► Фаза 5 (Terminal) ──► Фаза 6 (Agent) ──► Фаза 7 (Self-Improvement)
-     │                   │                    │                      │
-  llama.cpp           xterm.js            State Machine         Module Compiler
-  HTTP client         PTY backend         Tool Use Protocol     WASM modules
-  Streaming chat      Multiple tabs       Agent Loop            Versioning
-  Setup scripts                           Agent UI              Rollback
+Фаза 1-5 ✅ ──► Фаза 6 (Agent) ──► Фаза 7 (Self-Improvement) ──► Фаза 8 (Security) ──► Фаза 9 (Release) ──► Фаза 10 (Butler)
+                     │                      │                          │
+                State Machine (9 фаз)   Module Compiler            Audit log
+                Tool Use Protocol       WASM modules               RBAC
+                ImpactAssessment        Versioning                 Sandboxed exec
+                ContextCompressor       Rollback
+                DocSyncAgent
+                Agent UI
 ```
 
-Каждая фаза строится на предыдущей. Фаза 4 — фундамент для всего остального.
+Фазы 1-5 завершены. Фаза 6 (Autonomous Agent) — следующий шаг и фундамент автономности.
 
 ---
 
